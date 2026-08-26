@@ -23,10 +23,10 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <button @click="authModalOpen = true" class="hidden sm:inline-flex text-sm font-semibold text-gray-600 hover:text-primary-700 transition-colors">
+            <button @click="authModalOpen = true; authMode = 'login'" class="hidden sm:inline-flex text-sm font-semibold text-gray-600 hover:text-primary-700 transition-colors">
                 Se connecter
             </button>
-            <button @click="authModalOpen = true"
+            <button @click="authModalOpen = true; authMode = 'signup'"
                     class="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-sm shadow-accent-600/20 hover:-translate-y-0.5 transition-all">
                 Créer ma boutique
             </button>
@@ -61,7 +61,7 @@
             </p>
 
             <div class="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-                <button @click="authModalOpen = true"
+                <button @click="authModalOpen = true; authMode = 'signup'"
                         class="w-full sm:w-auto px-8 py-4 bg-accent-500 hover:bg-accent-600 text-white font-bold rounded-xl shadow-lg shadow-accent-900/30 hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
                     Créer ma boutique
                 </button>
@@ -130,7 +130,7 @@
                 <li class="flex items-center gap-3"><span class="text-primary-700 font-bold">✓</span> Paiement MVOLA et Orange Money</li>
             </ul>
 
-            <button @click="authModalOpen = true"
+            <button @click="authModalOpen = true; authMode = 'signup'"
                     class="w-full bg-primary-800 hover:bg-primary-900 text-white font-bold py-4 rounded-full transition shadow-lg shadow-primary-800/20 hover:-translate-y-0.5">
                 Commencer maintenant
             </button>
