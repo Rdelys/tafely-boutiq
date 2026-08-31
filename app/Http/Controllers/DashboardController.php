@@ -10,11 +10,14 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
 
-        // TODO: brancher ces chiffres sur les vrais modèles Produit / Commande
-        // dès qu'ils existeront. Pour l'instant on affiche un état "vide/gratuit".
+        $produits = $user->produits();
+
         $stats = [
-            'produits' => 0,
-            'en_stock' => 0,
+            'produits' => (clone $produits)->count(),
+            'en_stock' => (clone $produits)->where(function ($query) {
+                $query->whereNull('stock')->orWhere('stock', '>', 0);
+            })->count(),
+            // TODO: brancher sur le vrai modèle Commande dès qu'il existera.
             'commandes' => 0,
         ];
 

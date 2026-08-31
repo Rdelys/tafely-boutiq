@@ -43,6 +43,22 @@
                 @enderror
                 <p class="font-body text-xs text-gray-400 mt-1.5">Ce nom apparaîtra sur votre vitrine publique et sur les reçus des clients.</p>
             </div>
+
+            <div class="mt-5">
+                <label for="adresse" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Adresse de la boutique</label>
+                <input
+                    id="adresse"
+                    name="adresse"
+                    type="text"
+                    value="{{ old('adresse', $user->adresse) }}"
+                    placeholder="ex : Lot II M 45 Antananarivo, Madagascar"
+                    class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('adresse') border-accent-400 @enderror"
+                >
+                @error('adresse')
+                    <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                @enderror
+                <p class="font-body text-xs text-gray-400 mt-1.5">Utilisée pour les livraisons et affichée sur votre vitrine si activée.</p>
+            </div>
         </section>
 
         {{-- Section 2 : notifications de commande --}}

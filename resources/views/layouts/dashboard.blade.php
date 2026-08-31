@@ -33,12 +33,12 @@
         <p class="font-body text-sm text-gray-500 mt-0.5">Plan : {{ $user->statusLabel() }}</p>
     </div>
 
-    <a href="{{ route('produits') }}" class="bg-accent-500 hover:bg-accent-600 text-white w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 transition-colors flex items-center justify-center gap-2 shadow-sm">
+    <a href="{{ route('produits.create') }}" class="bg-accent-500 hover:bg-accent-600 text-white w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 transition-colors flex items-center justify-center gap-2 shadow-sm">
         <span class="material-symbols-outlined text-[20px]">add</span>
         Ajouter un produit
     </a>
 
-        <nav class="flex-1 flex flex-col gap-1 font-body text-sm">
+    <nav class="flex-1 flex flex-col gap-1 font-body text-sm">
         @foreach ([
             ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
             ['route' => 'produits', 'icon' => 'inventory_2', 'label' => 'Produits'],

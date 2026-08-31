@@ -10,8 +10,15 @@ class User extends Authenticatable
     use Notifiable;
 
     protected $fillable = [
-        'email', 'pseudo', 'nom', 'prenom', 'nom_boutique', 'adresse', 'status',
-        'email_notification', 'email_notification_secondaire',
+        'email',
+        'pseudo',
+        'nom',
+        'prenom',
+        'nom_boutique',
+        'adresse',
+        'status',
+        'email_notification',
+        'email_notification_secondaire',
     ];
 
     protected $hidden = [
@@ -38,5 +45,10 @@ class User extends Authenticatable
     public function hasPseudo(): bool
     {
         return ! empty($this->pseudo);
+    }
+
+    public function produits(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Produit::class);
     }
 }
