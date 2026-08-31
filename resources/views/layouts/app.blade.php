@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Tafely')</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,6 +36,124 @@
     </script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('authModal', () => ({
+                authModalOpen: false,
+                authMode: 'login',      // 'login' | 'signup' — n'affecte que les textes affichés
+                authStep: 'email',      // 'email' | 'code'
+                authEmail: '',
+                authCode: ['', '', '', '', '', ''],
+                authLoading: false,
+                authError: '',
+                authNewAccount: false,
+
+                openAuth(mode) {
+                    this.authMode = mode;
+                    this.resetAuth();
+                    this.authModalOpen = true;
+                },
+
+                resetAuth() {
+                    this.authStep = 'email';
+                    this.authCode = ['', '', '', '', '', ''];
+                    this.authError = '';
+                    this.authLoading = false;
+                },
+
+                csrf() {
+                    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+                },
+
+                async sendOtp() {
+                    if (! this.authEmail) {
+                        this.authError = 'Merci de renseigner votre adresse email.';
+                        return;
+                    }
+                    this.authError = '';
+                    this.authLoading = true;
+                    try {
+                        const res = await fetch('{{ route('auth.otp.send') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrf(),
+                            },
+                            body: JSON.stringify({ email: this.authEmail }),
+                        });
+                        const data = await res.json();
+                        if (! res.ok) {
+                            this.authError = data.message || 'Une erreur est survenue.';
+                            return;
+                        }
+                        this.authNewAccount = data.is_new_account;
+                        this.authStep = 'code';
+                        this.authCode = ['', '', '', '', '', ''];
+                        this.$nextTick(() => document.getElementById('otp-0')?.focus());
+                    } catch (e) {
+                        this.authError = 'Connexion impossible. Réessayez.';
+                    } finally {
+                        this.authLoading = false;
+                    }
+                },
+
+                async verifyOtp() {
+                    const code = this.authCode.join('');
+                    if (code.length !== 6) {
+                        this.authError = 'Entrez les 6 chiffres du code.';
+                        return;
+                    }
+                    this.authError = '';
+                    this.authLoading = true;
+                    try {
+                        const res = await fetch('{{ route('auth.otp.verify') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrf(),
+                            },
+                            body: JSON.stringify({ email: this.authEmail, code }),
+                        });
+                        const data = await res.json();
+                        if (! res.ok) {
+                            this.authError = data.message || 'Code invalide ou expiré.';
+                            return;
+                        }
+                        window.location.href = data.redirect;
+                    } catch (e) {
+                        this.authError = 'Connexion impossible. Réessayez.';
+                    } finally {
+                        this.authLoading = false;
+                    }
+                },
+
+                otpInput(index, event) {
+                    const val = event.target.value.replace(/[^0-9]/g, '').slice(-1);
+                    this.authCode[index] = val;
+                    if (val && index < 5) {
+                        document.getElementById('otp-' + (index + 1))?.focus();
+                    }
+                },
+
+                otpBackspace(index, event) {
+                    if (event.key === 'Backspace' && ! this.authCode[index] && index > 0) {
+                        document.getElementById('otp-' + (index - 1))?.focus();
+                    }
+                },
+
+                otpPaste(event) {
+                    const text = (event.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '').slice(0, 6);
+                    if (! text) return;
+                    event.preventDefault();
+                    this.authCode = text.split('').concat(['', '', '', '', '', '']).slice(0, 6);
+                    this.$nextTick(() => document.getElementById('otp-' + Math.min(text.length, 5))?.focus());
+                },
+            }));
+        });
+    </script>
+
     <style>
         body { font-family: 'Be Vietnam Pro', sans-serif; }
         .font-display { font-family: 'Hanken Grotesk', sans-serif; }
@@ -47,12 +166,11 @@
         [x-cloak] { display: none !important; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased" x-data="{ authModalOpen: false, authMode: 'login' }">
+<body class="bg-gray-50 text-gray-800 antialiased" x-data="authModal()">
 
     @yield('content')
 
     {{-- ============ MODAL AUTH (inscription / connexion) ============ --}}
-    {{-- Affichage uniquement pour l'instant : les formulaires ne sont pas encore branchés à une route. --}}
     <div
         x-show="authModalOpen"
         x-cloak
@@ -115,94 +233,107 @@
             </div>
 
             {{-- Panneau formulaire --}}
-            <div class="w-full md:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-center">
+            <div class="w-full md:w-1/2 p-6 sm:p-8 lg:p-10 flex flex-col justify-center min-h-[420px]">
 
-                {{-- ---- INSCRIPTION ---- --}}
-                <div x-show="authMode === 'signup'" x-cloak>
+                <div class="inline-flex items-center gap-2 mb-6 justify-center md:justify-start">
+                    <span class="material-symbols-outlined text-accent-500" style="font-variation-settings: 'FILL' 1;">storefront</span>
+                    <span class="font-display font-bold text-primary-900">Tafely</span>
+                </div>
+
+                {{-- erreur --}}
+                <p x-show="authError" x-cloak x-text="authError"
+                   class="mb-4 text-sm font-body font-semibold text-accent-700 bg-accent-50 border border-accent-100 rounded-lg px-4 py-2.5"></p>
+
+                {{-- ---- ÉTAPE 1 : EMAIL ---- --}}
+                <div x-show="authStep === 'email'" x-cloak>
                     <div class="mb-7 text-center md:text-left">
-                        <div class="inline-flex items-center gap-2 mb-4">
-                            <span class="material-symbols-outlined text-accent-500" style="font-variation-settings: 'FILL' 1;">storefront</span>
-                            <span class="font-display font-bold text-primary-900">Tafely</span>
-                        </div>
-                        <h2 class="font-display text-2xl font-bold text-gray-900 mb-1">Bienvenue</h2>
-                        <p class="font-body text-sm text-gray-500">Créez votre compte pour commencer.</p>
+                        <template x-if="authMode === 'signup'">
+                            <div>
+                                <h2 class="font-display text-2xl font-bold text-gray-900 mb-1">Bienvenue</h2>
+                                <p class="font-body text-sm text-gray-500">Entrez votre email pour créer votre boutique. Aucun mot de passe à retenir.</p>
+                            </div>
+                        </template>
+                        <template x-if="authMode === 'login'">
+                            <div>
+                                <h2 class="font-display text-2xl font-bold text-gray-900 mb-1">Connexion</h2>
+                                <p class="font-body text-sm text-gray-500">Entrez votre email, nous vous envoyons un code de connexion.</p>
+                            </div>
+                        </template>
                     </div>
 
-                    <form action="#" method="POST" class="space-y-5" @submit.prevent>
+                    <form @submit.prevent="sendOtp()" class="space-y-5">
                         <div>
-                            <label for="signup-email" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Adresse email</label>
+                            <label for="auth-email" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Adresse email</label>
                             <div class="relative">
                                 <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">mail</span>
-                                <input id="signup-email" name="email" type="email" required placeholder="votre@email.com"
+                                <input id="auth-email" name="email" type="email" required autocomplete="email" placeholder="vous@exemple.com"
+                                       x-model="authEmail"
                                        class="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors font-body text-sm">
                             </div>
                         </div>
-                        <div>
-                            <label for="signup-password" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Mot de passe</label>
-                            <div class="relative">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">lock</span>
-                                <input id="signup-password" name="password" type="password" required placeholder="••••••••"
-                                       class="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors font-body text-sm">
-                            </div>
-                        </div>
-                        <button type="submit"
-                                class="w-full flex justify-center items-center py-3.5 px-4 rounded-xl font-body font-bold text-sm text-white bg-accent-500 hover:bg-accent-600 shadow-sm transition-all active:scale-[0.98]">
-                            Créer mon compte
+                        <button type="submit" :disabled="authLoading"
+                                class="w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl font-body font-bold text-sm text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-all active:scale-[0.98]">
+                            <span x-text="authLoading ? 'Envoi du code...' : 'Recevoir mon code par email'"></span>
                         </button>
                     </form>
 
                     <p class="mt-6 text-center font-body text-sm text-gray-500">
-                        Vous avez déjà un compte ?
-                        <button type="button" @click="authMode = 'login'" class="font-semibold text-primary-700 hover:text-accent-600 transition-colors underline underline-offset-2">Connectez-vous</button>
+                        <template x-if="authMode === 'signup'">
+                            <span>Vous avez déjà un compte ?
+                                <button type="button" @click="authMode = 'login'" class="font-semibold text-primary-700 hover:text-accent-600 transition-colors underline underline-offset-2">Connectez-vous</button>
+                            </span>
+                        </template>
+                        <template x-if="authMode === 'login'">
+                            <span>Nouveau marchand ?
+                                <button type="button" @click="authMode = 'signup'" class="font-semibold text-primary-700 hover:text-accent-600 transition-colors underline underline-offset-2">Créer un compte</button>
+                            </span>
+                        </template>
                     </p>
                 </div>
 
-                {{-- ---- CONNEXION ---- --}}
-                <div x-show="authMode === 'login'" x-cloak x-data="{ showPassword: false }">
+                {{-- ---- ÉTAPE 2 : CODE OTP ---- --}}
+                <div x-show="authStep === 'code'" x-cloak>
                     <div class="mb-7 text-center md:text-left">
-                        <div class="inline-flex items-center gap-2 mb-4">
-                            <span class="material-symbols-outlined text-accent-500" style="font-variation-settings: 'FILL' 1;">storefront</span>
-                            <span class="font-display font-bold text-primary-900">Tafely</span>
-                        </div>
-                        <h2 class="font-display text-2xl font-bold text-gray-900 mb-1">Connexion</h2>
-                        <p class="font-body text-sm text-gray-500">Accédez à votre espace marchand.</p>
+                        <h2 class="font-display text-2xl font-bold text-gray-900 mb-1">Vérification</h2>
+                        <p class="font-body text-sm text-gray-500">
+                            Code envoyé à <span class="font-semibold text-primary-900" x-text="authEmail"></span>
+                        </p>
                     </div>
 
-                    <form action="#" method="POST" class="space-y-5" @submit.prevent>
-                        <div>
-                            <label for="login-email" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Adresse email</label>
-                            <div class="relative">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">mail</span>
-                                <input id="login-email" name="email" type="email" required placeholder="vous@exemple.com"
-                                       class="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors font-body text-sm">
-                            </div>
+                    <form @submit.prevent="verifyOtp()" class="space-y-6">
+                        <div class="flex justify-center md:justify-start gap-2 sm:gap-3">
+                            @for ($i = 0; $i < 6; $i++)
+                            <input
+                                id="otp-{{ $i }}"
+                                type="text"
+                                inputmode="numeric"
+                                maxlength="1"
+                                autocomplete="one-time-code"
+                                :value="authCode[{{ $i }}]"
+                                @input="otpInput({{ $i }}, $event)"
+                                @keydown="otpBackspace({{ $i }}, $event)"
+                                @paste="otpPaste($event)"
+                                class="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold border border-gray-200 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors"
+                            >
+                            @endfor
                         </div>
-                        <div>
-                            <div class="flex justify-between items-center mb-1.5">
-                                <label for="login-password" class="block font-body text-sm font-semibold text-primary-900">Mot de passe</label>
-                                <a href="#" class="font-body text-xs font-semibold text-accent-600 hover:text-accent-700 transition-colors">Mot de passe oublié ?</a>
-                            </div>
-                            <div class="relative">
-                                <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[20px]">lock</span>
-                                <input :type="showPassword ? 'text' : 'password'" id="login-password" name="password" required placeholder="••••••••"
-                                       class="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-xl bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors font-body text-sm">
-                                <button type="button" @click="showPassword = !showPassword" aria-label="Afficher le mot de passe"
-                                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-700 transition-colors">
-                                    <span class="material-symbols-outlined text-[20px]" x-text="showPassword ? 'visibility_off' : 'visibility'"></span>
-                                </button>
-                            </div>
-                        </div>
-                        <button type="submit"
-                                class="w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl font-body font-bold text-sm text-white bg-accent-500 hover:bg-accent-600 shadow-sm transition-all active:scale-[0.98]">
-                            <span>Se connecter</span>
-                            <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+
+                        <button type="submit" :disabled="authLoading"
+                                class="w-full flex justify-center items-center gap-2 py-3.5 px-4 rounded-xl font-body font-bold text-sm text-white bg-accent-500 hover:bg-accent-600 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition-all active:scale-[0.98]">
+                            <span x-text="authLoading ? 'Vérification...' : 'Vérifier et continuer'"></span>
+                            <span class="material-symbols-outlined text-[18px]" x-show="!authLoading">arrow_forward</span>
                         </button>
                     </form>
 
-                    <p class="mt-6 text-center font-body text-sm text-gray-500">
-                        Nouveau marchand ?
-                        <button type="button" @click="authMode = 'signup'" class="font-semibold text-primary-700 hover:text-accent-600 transition-colors underline underline-offset-2">Créer un compte</button>
-                    </p>
+                    <div class="mt-6 flex items-center justify-center md:justify-start gap-4 font-body text-sm">
+                        <button type="button" @click="authStep = 'email'" class="text-gray-500 hover:text-primary-700 transition-colors">
+                            Modifier l'email
+                        </button>
+                        <span class="text-gray-300">•</span>
+                        <button type="button" @click="sendOtp()" :disabled="authLoading" class="font-semibold text-primary-700 hover:text-accent-600 transition-colors disabled:opacity-60">
+                            Renvoyer le code
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
