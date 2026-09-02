@@ -19,6 +19,8 @@ class User extends Authenticatable
         'status',
         'email_notification',
         'email_notification_secondaire',
+        'boutique_theme',
+        'boutique_couleur',
     ];
 
     protected $hidden = [
@@ -50,5 +52,13 @@ class User extends Authenticatable
     public function produits(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(Produit::class);
+    }
+
+    // Lien public de la vitrine à partager. La page publique elle-même
+    // (route "vitrine") n'est pas encore construite — ce lien est réservé
+    // pour l'instant, prêt à être branché.
+    public function lienBoutique(): string
+    {
+        return url('/b/'.($this->pseudo ?: $this->id));
     }
 }

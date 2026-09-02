@@ -61,14 +61,24 @@
             </div>
         </div>
 
-        <a href="#" class="md:col-span-4 bg-primary-900 text-white rounded-xl shadow-lg p-6 flex flex-col justify-center items-center text-center relative overflow-hidden group hover:shadow-xl transition-shadow">
+        <button type="button"
+                x-data="{ copied: false, copier() {
+                    navigator.clipboard.writeText('{{ $user->lienBoutique() }}').then(() => {
+                        this.copied = true;
+                        setTimeout(() => this.copied = false, 2000);
+                    });
+                } }"
+                @click="copier()"
+                class="md:col-span-4 bg-primary-900 text-white rounded-xl shadow-lg p-6 flex flex-col justify-center items-center text-center relative overflow-hidden group hover:shadow-xl transition-shadow">
             <div class="absolute inset-0 bg-gradient-to-br from-primary-800 to-primary-950 opacity-90 z-0"></div>
             <div class="relative z-10 flex flex-col items-center gap-2">
-                <span class="material-symbols-outlined text-4xl mb-1">share</span>
-                <h3 class="font-display text-lg font-bold">Partager ma boutique</h3>
-                <p class="font-body text-sm text-primary-100/80">Attirez plus de clients en partageant votre lien.</p>
+                <span class="material-symbols-outlined text-4xl mb-1" x-show="!copied">share</span>
+                <span class="material-symbols-outlined text-4xl mb-1" x-show="copied" x-cloak>check_circle</span>
+                <h3 class="font-display text-lg font-bold" x-text="copied ? 'Lien copié !' : 'Partager ma boutique'"></h3>
+                <p class="font-body text-sm text-primary-100/80" x-show="!copied">Attirez plus de clients en partageant votre lien.</p>
+                <p class="font-body text-sm text-primary-100/80" x-show="copied" x-cloak>Collez-le où vous voulez pour le partager.</p>
             </div>
-        </a>
+        </button>
     </div>
 
     {{-- activité récente --}}

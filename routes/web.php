@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\BoutiqueController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ParametresController;
@@ -30,9 +31,11 @@ Route::middleware('auth')->group(function () {
 
     // Pages vides pour l'instant — à brancher sur de vrais contrôleurs/modèles plus tard.
     Route::view('/commandes', 'commandes')->name('commandes');
-    Route::view('/boutique', 'boutique')->name('boutique');
     Route::view('/notifications', 'notifications')->name('notifications');
     Route::view('/abonnement', 'abonnement')->name('abonnement');
+
+    Route::get('/boutique', [BoutiqueController::class, 'edit'])->name('boutique');
+    Route::put('/boutique', [BoutiqueController::class, 'update'])->name('boutique.update');
 
     Route::get('/parametres', [ParametresController::class, 'edit'])->name('parametres');
     Route::put('/parametres', [ParametresController::class, 'update'])->name('parametres.update');
