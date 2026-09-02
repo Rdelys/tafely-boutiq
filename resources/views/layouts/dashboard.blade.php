@@ -33,10 +33,18 @@
         <p class="font-body text-sm text-gray-500 mt-0.5">Plan : {{ $user->statusLabel() }}</p>
     </div>
 
-    <a href="{{ route('produits.create') }}" class="bg-accent-500 hover:bg-accent-600 text-white w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 transition-colors flex items-center justify-center gap-2 shadow-sm">
-        <span class="material-symbols-outlined text-[20px]">add</span>
-        Ajouter un produit
-    </a>
+    @if ($user->nombre_produits >= 10)
+        <span title="Limite de 10 produits atteinte pour votre plan actuel"
+              class="bg-gray-100 text-gray-400 w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 flex items-center justify-center gap-2 cursor-not-allowed select-none">
+            <span class="material-symbols-outlined text-[20px]">block</span>
+            Limite atteinte (10/10)
+        </span>
+    @else
+        <a href="{{ route('produits.create') }}" class="bg-accent-500 hover:bg-accent-600 text-white w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-[20px]">add</span>
+            Ajouter un produit
+        </a>
+    @endif
 
     <nav class="flex-1 flex flex-col gap-1 font-body text-sm">
         @foreach ([

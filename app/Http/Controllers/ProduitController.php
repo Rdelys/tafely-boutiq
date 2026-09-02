@@ -11,6 +11,8 @@ use Illuminate\View\View;
 
 class ProduitController extends Controller
 {
+    private const LIMITE_PRODUITS = 10;
+
     public function index(): View
     {
         $produits = Auth::user()->produits()->latest()->get();
@@ -18,20 +20,33 @@ class ProduitController extends Controller
         return view('produits.index', compact('produits'));
     }
 
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
+        if (Auth::user()->nombre_produits >= self::LIMITE_PRODUITS) {
+            return redirect()->route('produits')
+                ->with('erreur', 'Limite de '.self::LIMITE_PRODUITS.' produits atteinte pour votre plan actuel.');
+        }
+
         return view('produits.creer');
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $user = Auth::user();
+
+        if ($user->nombre_produits >= self::LIMITE_PRODUITS) {
+            return redirect()->route('produits')
+                ->with('erreur', 'Limite de '.self::LIMITE_PRODUITS.' produits atteinte pour votre plan actuel.');
+        }
+
         $validated = $this->validated($request);
 
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('produits', 'public');
         }
 
-        Auth::user()->produits()->create($validated);
+        $user->produits()->create($validated);
+        $user->increment('nombre_produits');
 
         return redirect()->route('produits')->with('status', 'Produit ajouté avec succès.');
     }
@@ -70,6 +85,11 @@ class ProduitController extends Controller
         }
 
         $produit->delete();
+
+        $user = Auth::user();
+        if ($user->nombre_produits > 0) {
+            $user->decrement('nombre_produits');
+        }
 
         return redirect()->route('produits')->with('status', 'Produit supprimé.');
     }
