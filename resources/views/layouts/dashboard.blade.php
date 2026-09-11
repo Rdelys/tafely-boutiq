@@ -10,7 +10,7 @@
         <img src="{{ asset('logo.png') }}" alt="Tafely" class="h-9">
     </a>
     <div class="flex items-center gap-2 md:gap-3">
-        <a href="#"
+        <a href="{{ $user->lienBoutique() }}" target="_blank" rel="noopener"
            class="hidden md:inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-full border border-primary-200 hover:bg-primary-50 transition-colors">
             Voir ma boutique
         </a>
@@ -28,9 +28,18 @@
 
 {{-- ============ SIDEBAR (desktop) ============ --}}
 <aside class="bg-white border-r border-gray-100 text-primary-900 hidden md:flex flex-col h-screen w-64 fixed left-0 top-0 pt-24 p-4 z-40">
-    <div class="mb-6 px-2">
-        <h2 class="font-display text-lg font-bold text-primary-900 truncate">{{ $user->nom_boutique ?: 'Ma boutique' }}</h2>
-        <p class="font-body text-sm text-gray-500 mt-0.5">Plan : {{ $user->statusLabel() }}</p>
+    <div class="mb-6 px-2 flex items-center gap-3">
+        <div class="h-11 w-11 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center shrink-0">
+            @if ($user->logo)
+                <img src="{{ asset('storage/'.$user->logo) }}" alt="Logo" class="h-full w-full object-cover">
+            @else
+                <span class="material-symbols-outlined text-gray-300 text-xl">storefront</span>
+            @endif
+        </div>
+        <div class="min-w-0">
+            <h2 class="font-display text-base font-bold text-primary-900 truncate">{{ $user->nom_boutique ?: 'Ma boutique' }}</h2>
+            <p class="font-body text-xs text-gray-500">Plan : {{ $user->statusLabel() }}</p>
+        </div>
     </div>
 
     @if ($user->nombre_produits >= 10)

@@ -1,0 +1,180 @@
+@extends('layouts.dashboard')
+
+@section('title', 'Commandes — Tafely')
+
+@section('page-content')
+
+    {{-- header --}}
+    <div class="mb-8">
+        <h1 class="font-display text-2xl md:text-3xl font-bold text-primary-900">Commandes</h1>
+        <p class="font-body text-gray-500 mt-1">{{ $commandes->count() }} commande{{ $commandes->count() > 1 ? 's' : '' }} reçue{{ $commandes->count() > 1 ? 's' : '' }} sur votre boutique.</p>
+    </div>
+
+    {{-- succès --}}
+    @if (session('status'))
+        <div class="mb-6 flex items-center gap-3 bg-primary-50 border border-primary-100 text-primary-700 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-[20px]">check_circle</span>
+            <span class="font-body text-sm font-semibold">{{ session('status') }}</span>
+        </div>
+    @endif
+
+    @if ($commandes->isEmpty())
+        {{-- état vide --}}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 md:p-20 flex flex-col items-center text-center">
+            <div class="h-16 w-16 rounded-full bg-primary-50 flex items-center justify-center mb-5">
+                <span class="material-symbols-outlined text-primary-700 text-3xl">shopping_cart</span>
+            </div>
+            <h2 class="font-display text-xl font-bold text-primary-900 mb-2">Aucune commande pour l'instant</h2>
+            <p class="font-body text-sm text-gray-500 max-w-sm">Partagez le lien de votre boutique pour recevoir vos premières commandes.</p>
+        </div>
+    @else
+        <div x-data="{ selected: null }" @keydown.escape.window="selected = null">
+
+            {{-- ============ TABLEAU ============ --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 border-b border-gray-100">
+                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Client</th>
+                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Produit</th>
+                                <th class="hidden md:table-cell px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Mode</th>
+                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Total</th>
+                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach ($commandes as $commande)
+                                <tr class="hover:bg-gray-50 transition-colors cursor-pointer"
+                                    @click="selected = {{ \Illuminate\Support\Js::from([
+                                        'client' => $commande->nom_client,
+                                        'telephone' => $commande->telephone_client,
+                                        'produit' => $commande->produit->nom ?? 'Produit supprimé',
+                                        'quantite' => $commande->quantite,
+                                        'total' => $commande->totalFormate(),
+                                        'mode' => $commande->mode,
+                                        'date' => $commande->date_recuperation?->format('d/m/Y'),
+                                        'heure' => $commande->heure_recuperation,
+                                        'adresse' => $commande->adresse_livraison,
+                                        'creeLe' => $commande->created_at->format('d/m/Y à H:i'),
+                                    ]) }}">
+                                    <td class="px-4 py-3">
+                                        <p class="font-body font-semibold text-sm text-primary-900">{{ $commande->nom_client }}</p>
+                                        <p class="font-body text-xs text-gray-400">{{ $commande->telephone_client }}</p>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <p class="font-body text-sm text-gray-700 truncate max-w-[160px]">{{ $commande->produit->nom ?? 'Produit supprimé' }}</p>
+                                        <p class="font-body text-xs text-gray-400">x{{ $commande->quantite }}</p>
+                                    </td>
+                                    <td class="hidden md:table-cell px-4 py-3">
+                                        @if ($commande->estALivrer())
+                                            <span class="inline-flex items-center gap-1 bg-primary-50 text-primary-700 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+                                                <span class="material-symbols-outlined text-[13px]">local_shipping</span>
+                                                À livrer
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
+                                                <span class="material-symbols-outlined text-[13px]">storefront</span>
+                                                À récupérer
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 font-display font-bold text-sm text-primary-800 whitespace-nowrap">
+                                        {{ $commande->totalFormate() }}
+                                    </td>
+                                    <td class="px-4 py-3" @click.stop>
+                                        <form method="POST" action="{{ route('commandes.statut', $commande) }}">
+                                            @csrf
+                                            @method('PUT')
+                                            <select name="statut" onchange="this.form.submit()"
+                                                    class="text-xs font-body font-bold rounded-full px-3 py-1.5 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-600
+                                                        {{ match($commande->statut) {
+                                                            'livree' => 'bg-green-50 text-green-700',
+                                                            'en_cours_de_livraison' => 'bg-primary-50 text-primary-700',
+                                                            default => 'bg-accent-50 text-accent-700',
+                                                        } }}">
+                                                <option value="a_prendre_en_compte" @selected($commande->statut === 'a_prendre_en_compte')>À prendre en compte</option>
+                                                <option value="en_cours_de_livraison" @selected($commande->statut === 'en_cours_de_livraison')>En cours de livraison</option>
+                                                <option value="livree" @selected($commande->statut === 'livree')>Livrée</option>
+                                            </select>
+                                        </form>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- ============ MODAL DÉTAIL COMMANDE ============ --}}
+            <div x-show="selected" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6" style="display: none;">
+                <div class="absolute inset-0 bg-primary-950/60 backdrop-blur-sm"
+                     x-show="selected"
+                     x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                     @click="selected = null"></div>
+
+                <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+                     x-show="selected"
+                     x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+                     x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                     @click.outside="selected = null">
+
+                    <button @click="selected = null" aria-label="Fermer"
+                            class="absolute top-4 right-4 h-9 w-9 flex items-center justify-center rounded-full text-gray-400 hover:text-accent-600 hover:bg-gray-50 transition-colors">
+                        <span class="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+
+                    <template x-if="selected">
+                        <div>
+                            <h2 class="font-display text-lg font-bold text-primary-900 mb-4">Détail de la commande</h2>
+
+                            <dl class="space-y-3 font-body text-sm">
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-gray-500">Client</dt>
+                                    <dd class="font-semibold text-primary-900 text-right" x-text="selected.client"></dd>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-gray-500">Téléphone</dt>
+                                    <dd class="font-semibold text-primary-900 text-right" x-text="selected.telephone"></dd>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-gray-500">Produit</dt>
+                                    <dd class="font-semibold text-primary-900 text-right" x-text="selected.produit + ' (x' + selected.quantite + ')'"></dd>
+                                </div>
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-gray-500">Total</dt>
+                                    <dd class="font-bold text-primary-900 text-right" x-text="selected.total"></dd>
+                                </div>
+                                <div class="h-px bg-gray-100"></div>
+                                <template x-if="selected.mode === 'recuperer'">
+                                    <div class="flex justify-between gap-4">
+                                        <dt class="text-gray-500">À récupérer</dt>
+                                        <dd class="font-semibold text-primary-900 text-right" x-text="(selected.date || '—') + ' à ' + (selected.heure || '—')"></dd>
+                                    </div>
+                                </template>
+                                <template x-if="selected.mode === 'livrer'">
+                                    <div class="flex justify-between gap-4">
+                                        <dt class="text-gray-500">Adresse de livraison</dt>
+                                        <dd class="font-semibold text-primary-900 text-right" x-text="selected.adresse"></dd>
+                                    </div>
+                                </template>
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-gray-500">Reçue le</dt>
+                                    <dd class="text-gray-600 text-right" x-text="selected.creeLe"></dd>
+                                </div>
+                            </dl>
+
+                            <a :href="'tel:' + selected.telephone"
+                               class="w-full mt-6 flex items-center justify-center gap-2 bg-primary-700 hover:bg-primary-800 text-white font-body font-bold text-sm py-3 rounded-xl transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">call</span>
+                                Appeler le client
+                            </a>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    @endif
+
+@endsection

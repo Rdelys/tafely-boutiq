@@ -18,7 +18,7 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('parametres.update') }}" class="max-w-2xl flex flex-col gap-6">
+    <form method="POST" action="{{ route('parametres.update') }}" enctype="multipart/form-data" class="max-w-2xl flex flex-col gap-6">
         @csrf
         @method('PUT')
 
@@ -42,6 +42,27 @@
                     <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
                 @enderror
                 <p class="font-body text-xs text-gray-400 mt-1.5">Ce nom apparaîtra sur votre vitrine publique et sur les reçus des clients.</p>
+            </div>
+
+            <div class="mt-5">
+                <label class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Logo de la boutique</label>
+                <div class="flex items-center gap-4">
+                    <div class="h-16 w-16 rounded-xl bg-gray-50 border border-gray-200 overflow-hidden flex items-center justify-center shrink-0">
+                        @if ($user->logo)
+                            <img src="{{ asset('storage/'.$user->logo) }}" alt="Logo actuel" class="h-full w-full object-cover">
+                        @else
+                            <span class="material-symbols-outlined text-gray-300 text-2xl">storefront</span>
+                        @endif
+                    </div>
+                    <div class="flex-1">
+                        <input type="file" name="logo" accept="image/*"
+                               class="block w-full text-sm font-body text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 file:cursor-pointer cursor-pointer">
+                        @error('logo')
+                            <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                        @enderror
+                        <p class="font-body text-xs text-gray-400 mt-1.5">Affiché sur votre tableau de bord et votre vitrine publique. JPG/PNG, 2 Mo max.</p>
+                    </div>
+                </div>
             </div>
 
             <div class="mt-5">

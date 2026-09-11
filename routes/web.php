@@ -2,15 +2,23 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BoutiqueController;
+use App\Http\Controllers\CommandeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ParametresController;
 use App\Http\Controllers\ProduitController;
+use App\Http\Controllers\VitrineController;
 use Illuminate\Support\Facades\Route;
 
 // Page d'accueil (marketing) — redirige automatiquement vers le
 // dashboard si l'utilisateur a déjà une session/remember active.
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Vitrine publique d'un marchand — accessible sans connexion.
+Route::get('/b/{identifiant}', [VitrineController::class, 'show'])->name('vitrine');
+
+// Commande passée par un client depuis la vitrine — accessible sans connexion.
+Route::post('/produits/{produit}/commander', [CommandeController::class, 'store'])->name('commandes.store');
 
 // Authentification par code OTP envoyé par email (connexion ET inscription,
 // le compte est créé automatiquement à la vérification s'il n'existait pas).
@@ -29,8 +37,11 @@ Route::middleware('auth')->group(function () {
     Route::put('/produits/{produit}', [ProduitController::class, 'update'])->name('produits.update');
     Route::delete('/produits/{produit}', [ProduitController::class, 'destroy'])->name('produits.destroy');
 
+    // Commandes (côté marchand)
+    Route::get('/commandes', [CommandeController::class, 'index'])->name('commandes');
+    Route::put('/commandes/{commande}/statut', [CommandeController::class, 'updateStatut'])->name('commandes.statut');
+
     // Pages vides pour l'instant — à brancher sur de vrais contrôleurs/modèles plus tard.
-    Route::view('/commandes', 'commandes')->name('commandes');
     Route::view('/notifications', 'notifications')->name('notifications');
     Route::view('/abonnement', 'abonnement')->name('abonnement');
 

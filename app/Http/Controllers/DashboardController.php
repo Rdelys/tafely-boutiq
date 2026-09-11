@@ -17,11 +17,22 @@ class DashboardController extends Controller
             'en_stock' => (clone $produits)->where(function ($query) {
                 $query->whereNull('stock')->orWhere('stock', '>', 0);
             })->count(),
-            // TODO: brancher sur le vrai modèle Commande dès qu'il existera.
-            'commandes' => 0,
+            'commandes' => $user->commandes()->count(),
         ];
 
-        $recentOrders = [];
+        $recentOrders = $user->commandes()
+            ->with('produit')
+            ->latest()
+            ->take(3)
+            ->get()
+            ->map(fn ($commande) => [
+                'id' => $commande->id,
+                'date' => $commande->created_at->diffForHumans(),
+                'items' => $commande->quantite,
+                'total' => $commande->totalFormate(),
+                'status' => $commande->statutLabel(),
+            ])
+            ->all();
 
         return view('dashboard', compact('user', 'stats', 'recentOrders'));
     }

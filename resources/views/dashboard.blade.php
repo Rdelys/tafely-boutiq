@@ -103,7 +103,11 @@
                     <div class="text-right">
                         <p class="font-display font-bold text-primary-900">{{ $order['total'] }}</p>
                         <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1
-                            {{ $order['status'] === 'Terminée' ? 'bg-green-100 text-green-700' : 'bg-accent-50 text-accent-700' }}">
+                            {{ match($order['status']) {
+                                'Livrée' => 'bg-green-100 text-green-700',
+                                'En cours de livraison' => 'bg-primary-50 text-primary-700',
+                                default => 'bg-accent-50 text-accent-700',
+                            } }}">
                             {{ $order['status'] }}
                         </span>
                     </div>

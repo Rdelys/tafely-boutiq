@@ -41,11 +41,21 @@ class BoutiqueController extends Controller
     {
         $validated = $request->validate([
             'boutique_theme' => ['required', 'in:'.implode(',', array_keys(self::THEMES))],
-            'boutique_couleur' => ['required', 'in:'.implode(',', array_keys(self::COULEURS))],
+            'boutique_couleur' => ['required', 'in:'.implode(',', array_merge(array_keys(self::COULEURS), ['perso']))],
+            'boutique_couleur_perso' => ['nullable', 'required_if:boutique_couleur,perso', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'boutique_description' => ['nullable', 'string', 'max:300'],
         ], [
             'boutique_theme.in' => 'Thème invalide.',
             'boutique_couleur.in' => 'Couleur invalide.',
+            'boutique_couleur_perso.required_if' => 'Choisissez un code couleur, ou revenez à une couleur prédéfinie.',
+            'boutique_couleur_perso.regex' => 'Le code couleur doit être au format #RRGGBB.',
+            'boutique_description.max' => 'Le texte de présentation ne doit pas dépasser 300 caractères.',
         ]);
+
+        // Si une couleur prédéfinie est choisie, on ne garde pas un ancien code perso.
+        if ($validated['boutique_couleur'] !== 'perso') {
+            $validated['boutique_couleur_perso'] = null;
+        }
 
         Auth::user()->update($validated);
 

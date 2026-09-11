@@ -4,12 +4,28 @@
 
 @section('page-content')
 
-    <div x-data="{ copied: false, lien: '{{ $user->lienBoutique() }}', copier() {
-            navigator.clipboard.writeText(this.lien).then(() => {
-                this.copied = true;
-                setTimeout(() => this.copied = false, 2000);
-            });
-        } }">
+    <div x-data="{
+            copied: false,
+            lien: '{{ $user->lienBoutique() }}',
+            theme: '{{ old('boutique_theme', $user->boutique_theme) }}',
+            couleur: '{{ old('boutique_couleur', $user->boutique_couleur) }}',
+            couleurPerso: '{{ old('boutique_couleur_perso', $user->boutique_couleur_perso ?: '#2563eb') }}',
+            description: {{ \Illuminate\Support\Js::from(old('boutique_description', $user->boutique_description ?? '')) }},
+            palette: {{ \Illuminate\Support\Js::from($couleurs) }},
+            get couleurActive() {
+                return this.couleur === 'perso' ? (this.couleurPerso || '#2563eb') : (this.palette[this.couleur] || '#2563eb');
+            },
+            get rayon() { return this.theme === 'minimal' ? 'rounded-lg' : (this.theme === 'moderne' ? 'rounded-2xl' : 'rounded-xl'); },
+            get rayonBtn() { return this.theme === 'moderne' ? 'rounded-xl' : 'rounded-lg'; },
+            get ombre() { return this.theme === 'minimal' ? '' : (this.theme === 'moderne' ? 'shadow-md' : 'shadow-sm'); },
+            get bordure() { return this.theme === 'minimal' ? '' : 'border border-gray-100'; },
+            copier() {
+                navigator.clipboard.writeText(this.lien).then(() => {
+                    this.copied = true;
+                    setTimeout(() => this.copied = false, 2000);
+                });
+            }
+        }">
 
         {{-- header --}}
         <div class="mb-8">
@@ -60,12 +76,12 @@
                 {{-- thème --}}
                 <p class="font-body text-sm font-semibold text-primary-900 mb-3">Thème</p>
                 <div class="grid sm:grid-cols-3 gap-3 mb-6">
-                    @foreach ($themes as $cle => $theme)
-                        <label class="relative flex flex-col gap-1 p-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 has-[:checked]:border-primary-600 has-[:checked]:bg-primary-50 cursor-pointer transition-colors">
-                            <input type="radio" name="boutique_theme" value="{{ $cle }}" class="sr-only"
-                                   {{ old('boutique_theme', $user->boutique_theme) === $cle ? 'checked' : '' }}>
-                            <span class="font-body font-bold text-sm text-primary-900">{{ $theme['nom'] }}</span>
-                            <span class="font-body text-xs text-gray-500">{{ $theme['description'] }}</span>
+                    @foreach ($themes as $cle => $themeInfo)
+                        <label class="relative flex flex-col gap-1 p-4 rounded-xl border-2 cursor-pointer transition-colors"
+                               :class="theme === '{{ $cle }}' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:border-gray-300'">
+                            <input type="radio" name="boutique_theme" value="{{ $cle }}" x-model="theme" class="sr-only">
+                            <span class="font-body font-bold text-sm text-primary-900">{{ $themeInfo['nom'] }}</span>
+                            <span class="font-body text-xs text-gray-500">{{ $themeInfo['description'] }}</span>
                         </label>
                     @endforeach
                 </div>
@@ -75,21 +91,68 @@
 
                 {{-- couleur --}}
                 <p class="font-body text-sm font-semibold text-primary-900 mb-3">Couleur d'accent</p>
-                <div class="flex flex-wrap gap-3">
+                <div class="flex flex-wrap items-center gap-3">
                     @foreach ($couleurs as $cle => $hex)
                         <label class="cursor-pointer">
-                            <input type="radio" name="boutique_couleur" value="{{ $cle }}" class="sr-only peer"
-                                   {{ old('boutique_couleur', $user->boutique_couleur) === $cle ? 'checked' : '' }}>
-                            <span class="h-10 w-10 rounded-full flex items-center justify-center border-2 border-transparent peer-checked:border-primary-700 peer-checked:ring-2 peer-checked:ring-offset-2 peer-checked:ring-primary-600 transition-all"
+                            <input type="radio" name="boutique_couleur" value="{{ $cle }}" x-model="couleur" class="sr-only">
+                            <span class="h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all"
+                                  :class="couleur === '{{ $cle }}' ? 'border-primary-700 ring-2 ring-offset-2 ring-primary-600' : 'border-transparent'"
                                   style="background-color: {{ $hex }}"
                                   title="{{ ucfirst($cle) }}">
                             </span>
                         </label>
                     @endforeach
+
+                    {{-- couleur personnalisée --}}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="boutique_couleur" value="perso" x-model="couleur" class="sr-only">
+                        <span class="h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all"
+                              :class="couleur === 'perso' ? 'border-primary-700 ring-2 ring-offset-2 ring-primary-600' : 'border-gray-200 bg-white'"
+                              :style="couleur === 'perso' ? `background-color: ${couleurPerso}` : ''"
+                              title="Couleur personnalisée">
+                            <span x-show="couleur !== 'perso'" class="material-symbols-outlined text-gray-400 text-[20px]">colorize</span>
+                        </span>
+                    </label>
+                </div>
+
+                {{-- champ code couleur personnalisé --}}
+                <div x-show="couleur === 'perso'" x-cloak x-transition class="flex items-center gap-3 mt-4">
+                    <input type="color" x-model="couleurPerso"
+                           class="h-11 w-11 rounded-lg border border-gray-200 cursor-pointer p-0.5">
+                    <input type="text" x-model="couleurPerso" name="boutique_couleur_perso" maxlength="7"
+                           placeholder="#2563EB"
+                           class="w-40 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body font-mono text-sm uppercase focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors">
+                    <span class="font-body text-xs text-gray-400">Format #RRGGBB</span>
                 </div>
                 @error('boutique_couleur')
                     <p class="mt-3 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
                 @enderror
+                @error('boutique_couleur_perso')
+                    <p class="mt-3 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                @enderror
+            </section>
+
+            {{-- texte de présentation --}}
+            <section class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100 mb-6">
+                <div class="flex items-center gap-2.5 mb-5 border-b border-gray-100 pb-4">
+                    <span class="material-symbols-outlined text-primary-700 text-[24px]">edit_note</span>
+                    <h2 class="font-display text-lg font-bold text-primary-900">Texte de présentation</h2>
+                </div>
+
+                <label for="boutique_description" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">
+                    Message affiché sous le nom de votre boutique
+                </label>
+                <textarea id="boutique_description" name="boutique_description" x-model="description" rows="3" maxlength="300"
+                          placeholder="ex : Créations artisanales faites main à Antananarivo, livrées avec soin partout à Madagascar."
+                          class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors resize-none @error('boutique_description') border-accent-400 @enderror"></textarea>
+                <div class="flex justify-between items-center mt-1.5">
+                    @error('boutique_description')
+                        <p class="text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                    @else
+                        <p class="font-body text-xs text-gray-400">Facultatif — donne le ton de votre boutique à vos visiteurs.</p>
+                    @enderror
+                    <p class="font-body text-xs text-gray-400 shrink-0 ml-3" x-text="description.length + ' / 300'"></p>
+                </div>
             </section>
 
             <div class="flex justify-end mb-8">
@@ -101,56 +164,66 @@
             </div>
         </form>
 
-        {{-- aperçu --}}
+        {{-- aperçu en direct --}}
         <section>
             <div class="flex items-center gap-2.5 mb-5">
                 <span class="material-symbols-outlined text-primary-700 text-[22px]">visibility</span>
-                <h2 class="font-display text-lg font-bold text-primary-900">Aperçu de votre vitrine</h2>
+                <h2 class="font-display text-lg font-bold text-primary-900">Aperçu en direct</h2>
+                <span class="font-body text-xs text-gray-400">(se met à jour pendant que vous personnalisez)</span>
             </div>
 
-            @php
-                $couleurAccent = $couleurs[$user->boutique_couleur] ?? $couleurs['bleu'];
-                $rayon = $user->boutique_theme === 'minimal' ? 'rounded-lg' : ($user->boutique_theme === 'moderne' ? 'rounded-2xl' : 'rounded-xl');
-                $ombre = $user->boutique_theme === 'minimal' ? '' : ($user->boutique_theme === 'moderne' ? 'shadow-md' : 'shadow-sm');
-                $bordure = $user->boutique_theme === 'minimal' ? '' : 'border border-gray-100';
-            @endphp
+            <div class="bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden">
+                {{-- mini en-tête vitrine --}}
+                <div class="p-6 md:p-8 text-center" :style="`background-color: ${couleurActive}0d`">
+                    <div class="h-14 w-14 mx-auto rounded-full flex items-center justify-center text-white font-display font-bold text-lg shadow-sm"
+                         :style="`background-color: ${couleurActive}`">
+                        {{ mb_strtoupper(mb_substr($user->nom_boutique ?: 'B', 0, 1)) }}
+                    </div>
+                    <p class="font-display font-bold text-primary-900 mt-3">{{ $user->nom_boutique ?: 'Ma boutique' }}</p>
+                    <p class="font-body text-xs text-gray-500 mt-1 max-w-sm mx-auto" x-show="description" x-text="description"></p>
+                </div>
 
-            <div class="bg-gray-50 rounded-2xl p-5 md:p-8 border border-gray-100">
-                @if ($produits->isEmpty())
-                    <div class="text-center py-14">
-                        <span class="material-symbols-outlined text-gray-300 text-4xl">inventory_2</span>
-                        <p class="font-body text-sm text-gray-500 mt-3">Ajoutez des produits pour voir l'aperçu de votre vitrine.</p>
-                        <a href="{{ route('produits.create') }}" class="inline-flex items-center gap-2 mt-4 font-body text-sm font-semibold text-primary-700 hover:text-accent-600 transition-colors">
-                            <span class="material-symbols-outlined text-[18px]">add</span>
-                            Ajouter un produit
-                        </a>
-                    </div>
-                @else
-                    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach ($produits as $produit)
-                            <div class="bg-white {{ $rayon }} {{ $ombre }} {{ $bordure }} overflow-hidden">
-                                <div class="h-32 bg-gray-100 flex items-center justify-center overflow-hidden">
-                                    @if ($produit->image)
-                                        <img src="{{ asset('storage/'.$produit->image) }}" alt="{{ $produit->nom }}" class="h-full w-full object-cover">
-                                    @else
-                                        <span class="material-symbols-outlined text-gray-300 text-4xl">inventory_2</span>
-                                    @endif
+                <div class="p-5 md:p-8 pt-0">
+                    @if ($produits->isEmpty())
+                        <div class="text-center py-14">
+                            <span class="material-symbols-outlined text-gray-300 text-4xl">inventory_2</span>
+                            <p class="font-body text-sm text-gray-500 mt-3">Ajoutez des produits pour voir l'aperçu de votre vitrine.</p>
+                            <a href="{{ route('produits.create') }}" class="inline-flex items-center gap-2 mt-4 font-body text-sm font-semibold text-primary-700 hover:text-accent-600 transition-colors">
+                                <span class="material-symbols-outlined text-[18px]">add</span>
+                                Ajouter un produit
+                            </a>
+                        </div>
+                    @else
+                        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            @foreach ($produits as $produit)
+                                <div class="bg-white overflow-hidden transition-all" :class="[rayon, ombre, bordure]">
+                                    <div class="h-32 bg-gray-100 flex items-center justify-center overflow-hidden">
+                                        @if ($produit->image)
+                                            <img src="{{ asset('storage/'.$produit->image) }}" alt="{{ $produit->nom }}" class="h-full w-full object-cover">
+                                        @else
+                                            <span class="material-symbols-outlined text-gray-300 text-4xl">inventory_2</span>
+                                        @endif
+                                    </div>
+                                    <div class="p-3.5">
+                                        <p class="font-body font-semibold text-sm text-gray-900 truncate">{{ $produit->nom }}</p>
+                                        <p class="font-display font-bold text-sm mt-0.5" :style="`color: ${couleurActive}`">{{ $produit->prixFormate() }}</p>
+                                        <button type="button" disabled
+                                                class="w-full mt-3 text-white text-xs font-bold py-2 cursor-default transition-colors"
+                                                :class="rayonBtn"
+                                                :style="`background-color: ${couleurActive}`">
+                                            Commander
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="p-3.5">
-                                    <p class="font-body font-semibold text-sm text-gray-900 truncate">{{ $produit->nom }}</p>
-                                    <p class="font-display font-bold text-sm mt-0.5" style="color: {{ $couleurAccent }}">{{ $produit->prixFormate() }}</p>
-                                    <button type="button" disabled
-                                            class="w-full mt-3 text-white text-xs font-bold py-2 {{ $rayon === 'rounded-2xl' ? 'rounded-xl' : 'rounded-lg' }} cursor-default"
-                                            style="background-color: {{ $couleurAccent }}">
-                                        Commander
-                                    </button>
-                                </div>
-                            </div>
-                        @endforeach
-                    </div>
-                @endif
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
             </div>
-            <p class="font-body text-xs text-gray-400 mt-3">Aperçu indicatif — la vitrine publique interactive arrive bientôt.</p>
+            <p class="font-body text-xs text-gray-400 mt-3">
+                Aperçu indicatif —
+                <a href="{{ $user->lienBoutique() }}" target="_blank" rel="noopener" class="font-semibold text-primary-700 hover:text-accent-600 transition-colors">voir la vraie vitrine publique</a>.
+            </p>
         </section>
     </div>
 
