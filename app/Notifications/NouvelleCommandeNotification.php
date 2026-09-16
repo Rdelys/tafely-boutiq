@@ -4,11 +4,10 @@ namespace App\Notifications;
 
 use App\Models\Commande;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class NouvelleCommandeNotification extends Notification implements ShouldQueue
+class NouvelleCommandeNotification extends Notification
 {
     use Queueable;
 
@@ -16,9 +15,6 @@ class NouvelleCommandeNotification extends Notification implements ShouldQueue
     {
     }
 
-    /**
-     * @return array<int, string>
-     */
     public function via(object $notifiable): array
     {
         return ['mail'];

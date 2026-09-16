@@ -30,7 +30,7 @@
     </div>
 
     {{-- grille stats + CTA --}}
-    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
         <div class="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-4">
@@ -81,6 +81,60 @@
         </button>
     </div>
 
+    {{-- suivi des commandes par statut --}}
+    <div class="mb-8">
+        <h2 class="font-display text-lg font-bold text-primary-900 mb-4">Suivi des commandes</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <a href="{{ route('commandes') }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div class="h-12 w-12 rounded-full bg-accent-50 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-accent-600 text-[22px]">pending_actions</span>
+                </div>
+                <div>
+                    <p class="font-display text-2xl font-bold text-primary-900">{{ $statutCounts['a_prendre_en_compte'] }}</p>
+                    <p class="font-body text-xs text-gray-500">À prendre en compte</p>
+                </div>
+            </a>
+            <a href="{{ route('commandes') }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div class="h-12 w-12 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-primary-700 text-[22px]">local_shipping</span>
+                </div>
+                <div>
+                    <p class="font-display text-2xl font-bold text-primary-900">{{ $statutCounts['en_cours_de_livraison'] }}</p>
+                    <p class="font-body text-xs text-gray-500">En cours de livraison</p>
+                </div>
+            </a>
+            <a href="{{ route('commandes') }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                <div class="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined text-green-600 text-[22px]">task_alt</span>
+                </div>
+                <div>
+                    <p class="font-display text-2xl font-bold text-primary-900">{{ $statutCounts['livree'] }}</p>
+                    <p class="font-body text-xs text-gray-500">Livrées</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    {{-- graphique d'évolution --}}
+    <div class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100 mb-8">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <h2 class="font-display text-lg font-bold text-primary-900">Évolution des commandes</h2>
+            <div class="inline-flex rounded-full bg-gray-100 p-1">
+                <button type="button" id="btn-periode-jour" onclick="tafelyAfficherPeriode('jour')"
+                        class="px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all bg-white shadow-sm text-primary-700">
+                    Par jour
+                </button>
+                <button type="button" id="btn-periode-mois" onclick="tafelyAfficherPeriode('mois')"
+                        class="px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all text-gray-500">
+                    Par mois
+                </button>
+            </div>
+        </div>
+        <div class="relative" style="height: 260px;">
+            <canvas id="tafely-graph-commandes"></canvas>
+        </div>
+    </div>
+
     {{-- activité récente --}}
     <div>
         <div class="flex justify-between items-center mb-4">
@@ -121,5 +175,59 @@
             @endforelse
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            const labelsJour = {{ \Illuminate\Support\Js::from($graphJours->pluck('label')) }};
+            const dataJour = {{ \Illuminate\Support\Js::from($graphJours->pluck('total')) }};
+            const labelsMois = {{ \Illuminate\Support\Js::from($graphMois->pluck('label')) }};
+            const dataMois = {{ \Illuminate\Support\Js::from($graphMois->pluck('total')) }};
+
+            const ctx = document.getElementById('tafely-graph-commandes');
+            if (! ctx || typeof Chart === 'undefined') return;
+
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labelsJour,
+                    datasets: [{
+                        label: 'Commandes',
+                        data: dataJour,
+                        borderColor: '#1d4ed8',
+                        backgroundColor: 'rgba(29, 78, 216, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#1d4ed8',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 1.5,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f3f4f6' } },
+                        x: { grid: { display: false } },
+                    },
+                },
+            });
+
+            window.tafelyAfficherPeriode = function (periode) {
+                const estJour = periode === 'jour';
+                chart.data.labels = estJour ? labelsJour : labelsMois;
+                chart.data.datasets[0].data = estJour ? dataJour : dataMois;
+                chart.update();
+
+                const actif = 'px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all bg-white shadow-sm text-primary-700';
+                const inactif = 'px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all text-gray-500';
+                document.getElementById('btn-periode-jour').className = estJour ? actif : inactif;
+                document.getElementById('btn-periode-mois').className = ! estJour ? actif : inactif;
+            };
+        })();
+    </script>
 
 @endsection

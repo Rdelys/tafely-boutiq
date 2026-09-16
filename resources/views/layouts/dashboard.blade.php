@@ -2,7 +2,10 @@
 
 @section('content')
 
-@php($user = auth()->user())
+@php
+    $user = auth()->user();
+    $commandesAFaire = $user->commandes()->where('statut', 'a_prendre_en_compte')->count();
+@endphp
 
 {{-- ============ TOP NAV ============ --}}
 <nav class="bg-white/90 backdrop-blur-md shadow-sm fixed top-0 left-0 w-full z-50 flex justify-between items-center px-4 md:px-10 h-16">
@@ -11,7 +14,7 @@
     </a>
     <div class="flex items-center gap-2 md:gap-3">
         <a href="{{ $user->lienBoutique() }}" target="_blank" rel="noopener"
-           class="hidden md:inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-full border border-primary-200 hover:bg-primary-50 transition-colors">
+        class="hidden md:inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-full border border-primary-200 hover:bg-primary-50 transition-colors">
             Voir ma boutique
         </a>
         <a href="{{ route('notifications') }}" class="text-gray-500 hover:text-primary-700 hover:bg-gray-50 transition-colors p-2.5 rounded-full flex items-center justify-center">
@@ -71,7 +74,12 @@
                    'text-gray-600 hover:bg-gray-50 font-normal' => ! request()->routeIs($link['route']),
                ])>
                 <span class="material-symbols-outlined text-[20px]" @if(request()->routeIs($link['route'])) style="font-variation-settings: 'FILL' 1;" @endif>{{ $link['icon'] }}</span>
-                {{ $link['label'] }}
+                <span class="flex-1">{{ $link['label'] }}</span>
+                @if ($link['route'] === 'commandes' && $commandesAFaire > 0)
+                    <span class="bg-accent-500 text-white text-[11px] font-bold h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center">
+                        {{ $commandesAFaire > 99 ? '99+' : $commandesAFaire }}
+                    </span>
+                @endif
             </a>
         @endforeach
 
@@ -104,9 +112,16 @@
         <span class="material-symbols-outlined" @if(request()->routeIs('produits')) style="font-variation-settings: 'FILL' 1;" @endif>grid_view</span>
         <span class="font-body text-xs mt-0.5">Produits</span>
     </a>
-    <a href="{{ route('commandes') }}"
-       @class(['flex flex-col items-center justify-center rounded-full px-4 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('commandes'), 'text-gray-500' => ! request()->routeIs('commandes')])>
-        <span class="material-symbols-outlined" @if(request()->routeIs('commandes')) style="font-variation-settings: 'FILL' 1;" @endif>receipt_long</span>
+    <a href="{{ route('commandes') }}" class="relative flex flex-col items-center justify-center rounded-full px-4 py-1.5"
+       @class(['bg-primary-50 text-primary-700' => request()->routeIs('commandes'), 'text-gray-500' => ! request()->routeIs('commandes')])>
+        <span class="relative">
+            <span class="material-symbols-outlined" @if(request()->routeIs('commandes')) style="font-variation-settings: 'FILL' 1;" @endif>receipt_long</span>
+            @if ($commandesAFaire > 0)
+                <span class="absolute -top-1 -right-1.5 bg-accent-500 text-white text-[9px] font-bold h-4 min-w-[16px] px-1 rounded-full flex items-center justify-center">
+                    {{ $commandesAFaire > 9 ? '9+' : $commandesAFaire }}
+                </span>
+            @endif
+        </span>
         <span class="font-body text-xs mt-0.5">Ventes</span>
     </a>
     <a href="{{ route('parametres') }}"
