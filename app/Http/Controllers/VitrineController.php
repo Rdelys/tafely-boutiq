@@ -23,9 +23,8 @@ class VitrineController extends Controller
         return view('vitrine', [
             'marchand' => $user,
             'produits' => $produits,
-            'themes' => BoutiqueController::THEMES,
-            'couleurs' => BoutiqueController::COULEURS,
             'couleurAccent' => $user->couleurBoutique(),
+            'commanderUrl' => route('commandes.store', $identifiant),
         ]);
     }
 }
