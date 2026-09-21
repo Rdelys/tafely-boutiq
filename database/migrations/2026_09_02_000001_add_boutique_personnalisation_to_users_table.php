@@ -9,6 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            $table->string('boutique_theme')->nullable();
+            $table->string('boutique_couleur')->nullable();
             $table->string('boutique_couleur_perso', 7)->nullable()->after('boutique_couleur');
             $table->string('boutique_description', 300)->nullable()->after('boutique_couleur_perso');
         });
@@ -17,7 +19,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['boutique_couleur_perso', 'boutique_description']);
+            $table->dropColumn([
+                'boutique_theme',
+                'boutique_couleur',
+                'boutique_couleur_perso',
+                'boutique_description',
+            ]);
         });
     }
 };
