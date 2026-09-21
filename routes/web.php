@@ -17,8 +17,11 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // Vitrine publique d'un marchand — accessible sans connexion.
 Route::get('/b/{identifiant}', [VitrineController::class, 'show'])->name('vitrine');
 
-// Commande passée par un client depuis la vitrine — accessible sans connexion.
-Route::post('/produits/{produit}/commander', [CommandeController::class, 'store'])->name('commandes.store');
+// Commande (panier complet) passée par un client depuis la vitrine — accessible sans connexion.
+Route::post('/b/{identifiant}/commander', [CommandeController::class, 'store'])->name('commandes.store');
+
+// Reçu PDF (A5) téléchargé directement par le client après sa commande — accessible sans connexion.
+Route::get('/commande/{numero}/recu', [CommandeController::class, 'recu'])->name('commandes.recu');
 
 // Authentification par code OTP envoyé par email (connexion ET inscription,
 // le compte est créé automatiquement à la vérification s'il n'existait pas).
@@ -39,6 +42,7 @@ Route::middleware('auth')->group(function () {
 
     // Commandes (côté marchand)
     Route::get('/commandes', [CommandeController::class, 'index'])->name('commandes');
+    Route::get('/commandes/{commande}/facture', [CommandeController::class, 'facture'])->name('commandes.facture');
     Route::put('/commandes/{commande}/statut', [CommandeController::class, 'updateStatut'])->name('commandes.statut');
 
     // Pages vides pour l'instant — à brancher sur de vrais contrôleurs/modèles plus tard.

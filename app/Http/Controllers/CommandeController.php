@@ -11,30 +11,46 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
 class CommandeController extends Controller
 {
     /**
-     * Réception d'une commande depuis la vitrine publique. Aucune connexion requise.
+     * Réception d'un panier (une ou plusieurs lignes) depuis la vitrine
+     * publique. Aucune connexion requise.
      */
-    public function store(Request $request, Produit $produit): JsonResponse
+    public function store(Request $request, string $identifiant): JsonResponse
     {
+        $marchand = User::where('pseudo', $identifiant)->first()
+            ?? User::where('slug', $identifiant)->first();
+
+        if (! $marchand && ctype_digit($identifiant)) {
+            $marchand = User::find((int) $identifiant);
+        }
+
+        if (! $marchand) {
+            return response()->json(['message' => 'Boutique introuvable.'], 404);
+        }
+
         $validator = Validator::make($request->all(), [
             'nom_client' => ['required', 'string', 'max:255'],
             'telephone_client' => ['required', 'string', 'max:30'],
-            'quantite' => ['required', 'integer', 'min:1', 'max:50'],
             'mode' => ['required', 'in:recuperer,livrer'],
             'date_recuperation' => ['required_if:mode,recuperer', 'nullable', 'date', 'after_or_equal:today'],
             'heure_recuperation' => ['required_if:mode,recuperer', 'nullable', 'string', 'max:10'],
             'adresse_livraison' => ['required_if:mode,livrer', 'nullable', 'string', 'max:500'],
+            'items' => ['required', 'array', 'min:1'],
+            'items.*.produit_id' => ['required', 'integer'],
+            'items.*.quantite' => ['required', 'integer', 'min:1', 'max:50'],
         ], [
             'nom_client.required' => 'Merci d\'indiquer votre nom.',
             'telephone_client.required' => 'Merci d\'indiquer votre numéro de téléphone.',
             'date_recuperation.required_if' => 'Merci d\'indiquer une date de récupération.',
             'heure_recuperation.required_if' => 'Merci d\'indiquer une heure de récupération.',
             'adresse_livraison.required_if' => 'Merci d\'indiquer une adresse de livraison.',
+            'items.required' => 'Votre panier est vide.',
         ]);
 
         if ($validator->fails()) {
@@ -43,28 +59,70 @@ class CommandeController extends Controller
 
         $donnees = $validator->validated();
 
-        $prixLivraison = $donnees['mode'] === 'livrer' && $produit->aLivraison() ? $produit->prix_livraison : null;
-        $total = ($produit->prix * $donnees['quantite']) + ($prixLivraison ?? 0);
+        $produits = Produit::where('user_id', $marchand->id)
+            ->whereIn('id', collect($donnees['items'])->pluck('produit_id'))
+            ->get()
+            ->keyBy('id');
 
-        $commande = Commande::create([
-            'user_id' => $produit->user_id,
-            'produit_id' => $produit->id,
-            'nom_client' => $donnees['nom_client'],
-            'telephone_client' => $donnees['telephone_client'],
-            'quantite' => $donnees['quantite'],
-            'mode' => $donnees['mode'],
-            'date_recuperation' => $donnees['date_recuperation'] ?? null,
-            'heure_recuperation' => $donnees['heure_recuperation'] ?? null,
-            'adresse_livraison' => $donnees['adresse_livraison'] ?? null,
-            'prix_unitaire' => $produit->prix,
-            'prix_livraison' => $prixLivraison,
-            'total' => $total,
-        ]);
+        if ($produits->isEmpty()) {
+            return response()->json(['message' => 'Ces produits ne sont plus disponibles.'], 422);
+        }
+
+        $commande = DB::transaction(function () use ($donnees, $marchand, $produits) {
+            $sousTotal = 0;
+            $prixLivraisonMax = 0;
+            $lignesAPreparer = [];
+
+            foreach ($donnees['items'] as $item) {
+                $produit = $produits->get($item['produit_id']);
+                if (! $produit) {
+                    continue;
+                }
+
+                $sousTotalLigne = $produit->prix * $item['quantite'];
+                $sousTotal += $sousTotalLigne;
+
+                if ($donnees['mode'] === 'livrer' && $produit->aLivraison()) {
+                    $prixLivraisonMax = max($prixLivraisonMax, $produit->prix_livraison);
+                }
+
+                $lignesAPreparer[] = [
+                    'produit_id' => $produit->id,
+                    'nom_produit' => $produit->nom,
+                    'prix_unitaire' => $produit->prix,
+                    'quantite' => $item['quantite'],
+                    'sous_total' => $sousTotalLigne,
+                ];
+            }
+
+            $prixLivraison = $donnees['mode'] === 'livrer' ? $prixLivraisonMax : 0;
+
+            $commande = Commande::create([
+                'user_id' => $marchand->id,
+                'nom_client' => $donnees['nom_client'],
+                'telephone_client' => $donnees['telephone_client'],
+                'mode' => $donnees['mode'],
+                'date_recuperation' => $donnees['date_recuperation'] ?? null,
+                'heure_recuperation' => $donnees['heure_recuperation'] ?? null,
+                'adresse_livraison' => $donnees['adresse_livraison'] ?? null,
+                'sous_total' => $sousTotal,
+                'prix_livraison' => $prixLivraison ?: null,
+                'total' => $sousTotal + $prixLivraison,
+            ]);
+
+            foreach ($lignesAPreparer as $ligne) {
+                $commande->lignes()->create($ligne);
+            }
+
+            return $commande;
+        });
 
         $this->notifierMarchand($commande);
 
         return response()->json([
             'message' => 'Commande envoyée avec succès.',
+            'numero' => $commande->numero,
+            'recuUrl' => route('commandes.recu', $commande->numero),
         ]);
     }
 
@@ -73,14 +131,43 @@ class CommandeController extends Controller
      */
     public function index(): View
     {
-        $commandes = Auth::user()->commandes()->with('produit')->latest()->get();
+        $commandes = Auth::user()->commandes()->with('lignes')->latest()->get();
 
         return view('commandes', compact('commandes'));
     }
 
     /**
-     * Changement de statut par le marchand. Décrémente le stock une seule
-     * fois, au moment où la commande passe au statut "livrée".
+     * Facture imprimable d'une commande (côté marchand).
+     */
+    public function facture(Commande $commande): View
+    {
+        abort_if($commande->user_id !== Auth::id(), 403);
+
+        $commande->load('lignes');
+
+        return view('facture', ['commande' => $commande, 'marchand' => Auth::user()]);
+    }
+
+    /**
+     * Reçu PDF (A5) téléchargé directement par le client après sa commande.
+     * Accessible sans connexion, identifié par le numéro unique (pas l'id)
+     * pour ne pas exposer/deviner les commandes des autres clients.
+     */
+    public function recu(string $numero)
+    {
+        $commande = Commande::where('numero', $numero)->with(['lignes', 'user'])->firstOrFail();
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('recu', [
+            'commande' => $commande,
+            'marchand' => $commande->user,
+        ])->setPaper('a5');
+
+        return $pdf->download('recu-'.$commande->numero.'.pdf');
+    }
+
+    /**
+     * Changement de statut par le marchand. Décrémente le stock des
+     * produits une seule fois, au moment où la commande passe à "livrée".
      */
     public function updateStatut(Request $request, Commande $commande): RedirectResponse
     {
@@ -93,12 +180,12 @@ class CommandeController extends Controller
         $commande->statut = $validated['statut'];
 
         if ($validated['statut'] === 'livree' && ! $commande->stock_decremente) {
-            $produit = $commande->produit;
-
-            if ($produit && ! is_null($produit->stock)) {
-                $produit->decrement('stock', min($commande->quantite, $produit->stock));
+            foreach ($commande->lignes as $ligne) {
+                $produit = $ligne->produit;
+                if ($produit && ! is_null($produit->stock)) {
+                    $produit->decrement('stock', min($ligne->quantite, $produit->stock));
+                }
             }
-
             $commande->stock_decremente = true;
         }
 

@@ -15,6 +15,9 @@ class NouvelleCommandeNotification extends Notification
     {
     }
 
+    /**
+     * @return array<int, string>
+     */
     public function via(object $notifiable): array
     {
         return ['mail'];
@@ -23,12 +26,16 @@ class NouvelleCommandeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $commande = $this->commande;
-        $produit = $commande->produit;
 
         $message = (new MailMessage)
-            ->subject('Nouvelle commande — '.$produit->nom)
-            ->greeting('Vous avez reçu une nouvelle commande !')
-            ->line('**Produit :** '.$produit->nom.' (x'.$commande->quantite.')')
+            ->subject('Nouvelle commande '.$commande->numero)
+            ->greeting('Vous avez reçu une nouvelle commande !');
+
+        foreach ($commande->lignes as $ligne) {
+            $message->line('**'.$ligne->nom_produit.'** x'.$ligne->quantite.' — '.$ligne->sousTotalFormate());
+        }
+
+        $message
             ->line('**Total :** '.$commande->totalFormate())
             ->line('**Client :** '.$commande->nom_client)
             ->line('**Téléphone :** '.$commande->telephone_client);

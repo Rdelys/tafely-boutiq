@@ -81,6 +81,54 @@
         </button>
     </div>
 
+    {{-- ============ CHIFFRE D'AFFAIRES ============ --}}
+    <div class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100 mb-8">
+        <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+            <h2 class="font-display text-lg font-bold text-primary-900">Chiffre d'affaires</h2>
+            <form method="GET" action="{{ route('dashboard') }}">
+                <select name="filtre" onchange="this.form.submit()"
+                        class="text-xs font-body font-bold rounded-full px-3.5 py-2 border border-gray-200 bg-gray-50 text-gray-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <option value="toutes" @selected($filtre === 'toutes')>Toutes les commandes</option>
+                    <option value="livrees" @selected($filtre === 'livrees')>Commandes livrées uniquement</option>
+                </select>
+            </form>
+        </div>
+
+        {{-- 3 totaux --}}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            <div class="bg-primary-50 rounded-xl p-4">
+                <p class="font-body text-xs font-semibold text-primary-700 uppercase tracking-wide mb-1">Aujourd'hui</p>
+                <p class="font-display text-2xl font-bold text-primary-900">{{ number_format($revenus['jour'], 0, ',', ' ') }} Ar</p>
+            </div>
+            <div class="bg-accent-50 rounded-xl p-4">
+                <p class="font-body text-xs font-semibold text-accent-700 uppercase tracking-wide mb-1">Ce mois-ci</p>
+                <p class="font-display text-2xl font-bold text-primary-900">{{ number_format($revenus['mois'], 0, ',', ' ') }} Ar</p>
+            </div>
+            <div class="bg-gray-900 rounded-xl p-4">
+                <p class="font-body text-xs font-semibold text-gray-300 uppercase tracking-wide mb-1">Total (tout temps)</p>
+                <p class="font-display text-2xl font-bold text-white">{{ number_format($revenus['total'], 0, ',', ' ') }} Ar</p>
+            </div>
+        </div>
+
+        {{-- graphique revenu --}}
+        <div class="flex items-center justify-between mb-3">
+            <p class="font-body text-sm font-semibold text-gray-600">Évolution du chiffre d'affaires</p>
+            <div class="inline-flex rounded-full bg-gray-100 p-1">
+                <button type="button" id="btn-revenu-jour" onclick="tafelyAfficherRevenu('jour')"
+                        class="px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all bg-white shadow-sm text-primary-700">
+                    Par jour
+                </button>
+                <button type="button" id="btn-revenu-mois" onclick="tafelyAfficherRevenu('mois')"
+                        class="px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all text-gray-500">
+                    Par mois
+                </button>
+            </div>
+        </div>
+        <div class="relative" style="height: 240px;">
+            <canvas id="tafely-graph-revenu"></canvas>
+        </div>
+    </div>
+
     {{-- suivi des commandes par statut --}}
     <div class="mb-8">
         <h2 class="font-display text-lg font-bold text-primary-900 mb-4">Suivi des commandes</h2>
@@ -115,10 +163,10 @@
         </div>
     </div>
 
-    {{-- graphique d'évolution --}}
+    {{-- graphique nombre de commandes --}}
     <div class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100 mb-8">
         <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-            <h2 class="font-display text-lg font-bold text-primary-900">Évolution des commandes</h2>
+            <h2 class="font-display text-lg font-bold text-primary-900">Évolution du nombre de commandes</h2>
             <div class="inline-flex rounded-full bg-gray-100 p-1">
                 <button type="button" id="btn-periode-jour" onclick="tafelyAfficherPeriode('jour')"
                         class="px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all bg-white shadow-sm text-primary-700">
@@ -130,7 +178,7 @@
                 </button>
             </div>
         </div>
-        <div class="relative" style="height: 260px;">
+        <div class="relative" style="height: 240px;">
             <canvas id="tafely-graph-commandes"></canvas>
         </div>
     </div>
@@ -150,7 +198,7 @@
                             <span class="material-symbols-outlined text-gray-400">person</span>
                         </div>
                         <div>
-                            <p class="font-body font-bold text-primary-900 text-sm">Commande #{{ $order['id'] }}</p>
+                            <p class="font-body font-bold text-primary-900 text-sm">{{ $order['id'] }}</p>
                             <p class="font-body text-xs text-gray-500">{{ $order['date'] }} • {{ $order['items'] }} article(s)</p>
                         </div>
                     </div>
@@ -179,15 +227,16 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <script>
         (function () {
+            if (typeof Chart === 'undefined') return;
+
+            // ---- graphique nombre de commandes ----
             const labelsJour = {{ \Illuminate\Support\Js::from($graphJours->pluck('label')) }};
             const dataJour = {{ \Illuminate\Support\Js::from($graphJours->pluck('total')) }};
             const labelsMois = {{ \Illuminate\Support\Js::from($graphMois->pluck('label')) }};
             const dataMois = {{ \Illuminate\Support\Js::from($graphMois->pluck('total')) }};
 
-            const ctx = document.getElementById('tafely-graph-commandes');
-            if (! ctx || typeof Chart === 'undefined') return;
-
-            const chart = new Chart(ctx, {
+            const ctxCommandes = document.getElementById('tafely-graph-commandes');
+            const chartCommandes = new Chart(ctxCommandes, {
                 type: 'line',
                 data: {
                     labels: labelsJour,
@@ -196,18 +245,13 @@
                         data: dataJour,
                         borderColor: '#1d4ed8',
                         backgroundColor: 'rgba(29, 78, 216, 0.08)',
-                        fill: true,
-                        tension: 0.35,
-                        borderWidth: 2.5,
-                        pointRadius: 3,
-                        pointBackgroundColor: '#1d4ed8',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 1.5,
+                        fill: true, tension: 0.35, borderWidth: 2.5,
+                        pointRadius: 3, pointBackgroundColor: '#1d4ed8',
+                        pointBorderColor: '#ffffff', pointBorderWidth: 1.5,
                     }],
                 },
                 options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
+                    responsive: true, maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
                         y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 }, grid: { color: '#f3f4f6' } },
@@ -218,14 +262,58 @@
 
             window.tafelyAfficherPeriode = function (periode) {
                 const estJour = periode === 'jour';
-                chart.data.labels = estJour ? labelsJour : labelsMois;
-                chart.data.datasets[0].data = estJour ? dataJour : dataMois;
-                chart.update();
-
+                chartCommandes.data.labels = estJour ? labelsJour : labelsMois;
+                chartCommandes.data.datasets[0].data = estJour ? dataJour : dataMois;
+                chartCommandes.update();
                 const actif = 'px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all bg-white shadow-sm text-primary-700';
                 const inactif = 'px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all text-gray-500';
                 document.getElementById('btn-periode-jour').className = estJour ? actif : inactif;
                 document.getElementById('btn-periode-mois').className = ! estJour ? actif : inactif;
+            };
+
+            // ---- graphique chiffre d'affaires ----
+            const labelsRevJour = {{ \Illuminate\Support\Js::from($graphRevenuJours->pluck('label')) }};
+            const dataRevJour = {{ \Illuminate\Support\Js::from($graphRevenuJours->pluck('total')) }};
+            const labelsRevMois = {{ \Illuminate\Support\Js::from($graphRevenuMois->pluck('label')) }};
+            const dataRevMois = {{ \Illuminate\Support\Js::from($graphRevenuMois->pluck('total')) }};
+
+            const ctxRevenu = document.getElementById('tafely-graph-revenu');
+            const chartRevenu = new Chart(ctxRevenu, {
+                type: 'line',
+                data: {
+                    labels: labelsRevJour,
+                    datasets: [{
+                        label: 'Chiffre d\'affaires (Ar)',
+                        data: dataRevJour,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                        fill: true, tension: 0.35, borderWidth: 2.5,
+                        pointRadius: 3, pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#ffffff', pointBorderWidth: 1.5,
+                    }],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: (ctx) => new Intl.NumberFormat('fr-FR').format(ctx.parsed.y) + ' Ar' } },
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: (v) => new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(v) }, grid: { color: '#f3f4f6' } },
+                        x: { grid: { display: false } },
+                    },
+                },
+            });
+
+            window.tafelyAfficherRevenu = function (periode) {
+                const estJour = periode === 'jour';
+                chartRevenu.data.labels = estJour ? labelsRevJour : labelsRevMois;
+                chartRevenu.data.datasets[0].data = estJour ? dataRevJour : dataRevMois;
+                chartRevenu.update();
+                const actif = 'px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all bg-white shadow-sm text-primary-700';
+                const inactif = 'px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all text-gray-500';
+                document.getElementById('btn-revenu-jour').className = estJour ? actif : inactif;
+                document.getElementById('btn-revenu-mois').className = ! estJour ? actif : inactif;
             };
         })();
     </script>

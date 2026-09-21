@@ -36,35 +36,48 @@
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-gray-50 border-b border-gray-100">
-                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Client</th>
-                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Produit</th>
+                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">N° / Client</th>
+                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Articles</th>
                                 <th class="hidden md:table-cell px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Mode</th>
                                 <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Total</th>
                                 <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide">Statut</th>
+                                <th class="px-4 py-3 font-body text-xs font-bold text-gray-500 uppercase tracking-wide text-right">Facture</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             @foreach ($commandes as $commande)
+                                @php($premiereLigne = $commande->lignes->first())
                                 <tr class="hover:bg-gray-50 transition-colors cursor-pointer"
                                     @click="selected = {{ \Illuminate\Support\Js::from([
+                                        'numero' => $commande->numero,
                                         'client' => $commande->nom_client,
                                         'telephone' => $commande->telephone_client,
-                                        'produit' => $commande->produit->nom ?? 'Produit supprimé',
-                                        'quantite' => $commande->quantite,
                                         'total' => $commande->totalFormate(),
+                                        'sousTotal' => $commande->sousTotalFormate(),
                                         'mode' => $commande->mode,
                                         'date' => $commande->date_recuperation?->format('d/m/Y'),
                                         'heure' => $commande->heure_recuperation,
                                         'adresse' => $commande->adresse_livraison,
                                         'creeLe' => $commande->created_at->format('d/m/Y à H:i'),
+                                        'factureUrl' => route('commandes.facture', $commande),
+                                        'lignes' => $commande->lignes->map(fn ($l) => [
+                                            'nom' => $l->nom_produit,
+                                            'quantite' => $l->quantite,
+                                            'sousTotal' => $l->sousTotalFormate(),
+                                        ])->all(),
                                     ]) }}">
                                     <td class="px-4 py-3">
                                         <p class="font-body font-semibold text-sm text-primary-900">{{ $commande->nom_client }}</p>
-                                        <p class="font-body text-xs text-gray-400">{{ $commande->telephone_client }}</p>
+                                        <p class="font-body text-xs text-gray-400">{{ $commande->numero }} · {{ $commande->telephone_client }}</p>
                                     </td>
                                     <td class="px-4 py-3">
-                                        <p class="font-body text-sm text-gray-700 truncate max-w-[160px]">{{ $commande->produit->nom ?? 'Produit supprimé' }}</p>
-                                        <p class="font-body text-xs text-gray-400">x{{ $commande->quantite }}</p>
+                                        <p class="font-body text-sm text-gray-700 truncate max-w-[180px]">
+                                            {{ $premiereLigne->nom_produit ?? '—' }}
+                                            @if ($commande->lignes->count() > 1)
+                                                <span class="text-gray-400">+{{ $commande->lignes->count() - 1 }} autre{{ $commande->lignes->count() - 1 > 1 ? 's' : '' }}</span>
+                                            @endif
+                                        </p>
+                                        <p class="font-body text-xs text-gray-400">{{ $commande->nombreArticles() }} article(s)</p>
                                     </td>
                                     <td class="hidden md:table-cell px-4 py-3">
                                         @if ($commande->estALivrer())
@@ -99,6 +112,13 @@
                                             </select>
                                         </form>
                                     </td>
+                                    <td class="px-4 py-3 text-right" @click.stop>
+                                        <a href="{{ route('commandes.facture', $commande) }}" target="_blank"
+                                           class="inline-flex items-center gap-1 text-xs font-body font-semibold text-primary-700 hover:text-accent-600 transition-colors">
+                                            <span class="material-symbols-outlined text-[16px]">receipt_long</span>
+                                            Voir
+                                        </a>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -114,7 +134,7 @@
                      x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
                      @click="selected = null"></div>
 
-                <div class="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6"
+                <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-2xl p-6"
                      x-show="selected"
                      x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
                      x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
@@ -127,7 +147,18 @@
 
                     <template x-if="selected">
                         <div>
-                            <h2 class="font-display text-lg font-bold text-primary-900 mb-4">Détail de la commande</h2>
+                            <h2 class="font-display text-lg font-bold text-primary-900 mb-1">Détail de la commande</h2>
+                            <p class="font-body text-xs text-gray-400 mb-4" x-text="selected.numero"></p>
+
+                            {{-- articles --}}
+                            <div class="bg-gray-50 rounded-xl p-3 mb-4 space-y-2">
+                                <template x-for="ligne in selected.lignes" :key="ligne.nom">
+                                    <div class="flex justify-between font-body text-sm">
+                                        <span class="text-gray-700" x-text="ligne.nom + ' x' + ligne.quantite"></span>
+                                        <span class="font-semibold text-gray-900" x-text="ligne.sousTotal"></span>
+                                    </div>
+                                </template>
+                            </div>
 
                             <dl class="space-y-3 font-body text-sm">
                                 <div class="flex justify-between gap-4">
@@ -137,10 +168,6 @@
                                 <div class="flex justify-between gap-4">
                                     <dt class="text-gray-500">Téléphone</dt>
                                     <dd class="font-semibold text-primary-900 text-right" x-text="selected.telephone"></dd>
-                                </div>
-                                <div class="flex justify-between gap-4">
-                                    <dt class="text-gray-500">Produit</dt>
-                                    <dd class="font-semibold text-primary-900 text-right" x-text="selected.produit + ' (x' + selected.quantite + ')'"></dd>
                                 </div>
                                 <div class="flex justify-between gap-4">
                                     <dt class="text-gray-500">Total</dt>
@@ -165,11 +192,18 @@
                                 </div>
                             </dl>
 
-                            <a :href="'tel:' + selected.telephone"
-                               class="w-full mt-6 flex items-center justify-center gap-2 bg-primary-700 hover:bg-primary-800 text-white font-body font-bold text-sm py-3 rounded-xl transition-colors">
-                                <span class="material-symbols-outlined text-[18px]">call</span>
-                                Appeler le client
-                            </a>
+                            <div class="flex gap-3 mt-6">
+                                <a :href="'tel:' + selected.telephone"
+                                   class="flex-1 flex items-center justify-center gap-2 bg-primary-700 hover:bg-primary-800 text-white font-body font-bold text-sm py-3 rounded-xl transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">call</span>
+                                    Appeler
+                                </a>
+                                <a :href="selected.factureUrl" target="_blank"
+                                   class="flex-1 flex items-center justify-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-700 font-body font-bold text-sm py-3 rounded-xl transition-colors">
+                                    <span class="material-symbols-outlined text-[18px]">receipt_long</span>
+                                    Facture
+                                </a>
+                            </div>
                         </div>
                     </template>
                 </div>

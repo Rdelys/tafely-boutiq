@@ -4,20 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Commande extends Model
 {
     protected $fillable = [
         'user_id',
-        'produit_id',
+        'numero',
         'nom_client',
         'telephone_client',
-        'quantite',
         'mode',
         'date_recuperation',
         'heure_recuperation',
         'adresse_livraison',
-        'prix_unitaire',
+        'sous_total',
         'prix_livraison',
         'total',
         'statut',
@@ -27,8 +28,7 @@ class Commande extends Model
     protected function casts(): array
     {
         return [
-            'quantite' => 'integer',
-            'prix_unitaire' => 'integer',
+            'sous_total' => 'integer',
             'prix_livraison' => 'integer',
             'total' => 'integer',
             'date_recuperation' => 'date',
@@ -36,14 +36,23 @@ class Commande extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::creating(function (Commande $commande) {
+            if (empty($commande->numero)) {
+                $commande->numero = 'TAF-'.now()->format('ymd').'-'.strtoupper(Str::random(4));
+            }
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function produit(): BelongsTo
+    public function lignes(): HasMany
     {
-        return $this->belongsTo(Produit::class);
+        return $this->hasMany(CommandeLigne::class);
     }
 
     public function statutLabel(): string
@@ -58,6 +67,16 @@ class Commande extends Model
     public function estALivrer(): bool
     {
         return $this->mode === 'livrer';
+    }
+
+    public function nombreArticles(): int
+    {
+        return (int) $this->lignes->sum('quantite');
+    }
+
+    public function sousTotalFormate(): string
+    {
+        return number_format($this->sous_total, 0, ',', ' ').' Ar';
     }
 
     public function totalFormate(): string

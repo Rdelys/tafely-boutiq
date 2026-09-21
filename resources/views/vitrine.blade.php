@@ -42,6 +42,7 @@
             loading: false,
             error: '',
             numeroCommande: '',
+            recuUrl: '',
 
             get nombreArticles() { return this.panier.reduce((s, i) => s + i.quantite, 0); },
             get sousTotal() { return this.panier.reduce((s, i) => s + (i.prix * i.quantite), 0); },
@@ -110,6 +111,8 @@
                         return;
                     }
                     this.numeroCommande = data.numero;
+                    this.recuUrl = data.recuUrl;
+                    window.open(data.recuUrl, '_blank');
                     this.panier = [];
                     this.vueCart = 'succes';
                 }).catch(() => {
@@ -472,8 +475,15 @@
                     <p class="font-display font-bold text-lg text-gray-900 mt-3">Commande envoyée !</p>
                     <p class="font-body text-sm text-gray-500 mt-1">N° <span class="font-semibold" x-text="numeroCommande"></span></p>
                     <p class="font-body text-sm text-gray-500 mt-1">Le vendeur vous contactera au numéro indiqué.</p>
+                    <a :href="recuUrl"
+                       class="mt-5 inline-flex items-center gap-2 text-white font-body font-bold text-sm px-6 py-3 rounded-xl transition-opacity hover:opacity-90"
+                       :style="`background-color: {{ $couleurAccent }}`">
+                        <span class="material-symbols-outlined text-[18px]">download</span>
+                        Télécharger mon reçu
+                    </a>
+                    <p class="font-body text-xs text-gray-400 mt-2">Il s'est peut-être déjà téléchargé automatiquement.</p>
                     <button type="button" @click="cartOuvert = false; vueCart = 'panier'"
-                            class="mt-6 inline-flex items-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-700 font-body font-bold text-sm px-6 py-3 rounded-xl transition-colors">
+                            class="mt-3 inline-flex items-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-700 font-body font-bold text-sm px-6 py-3 rounded-xl transition-colors">
                         Fermer
                     </button>
                 </div>
