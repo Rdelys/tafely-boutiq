@@ -24,6 +24,7 @@ class ParametresController extends Controller
         $validated = $request->validate([
             'nom_boutique' => ['required', 'string', 'max:255'],
             'adresse' => ['nullable', 'string', 'max:500'],
+            'telephone' => ['nullable', 'string', 'max:30'],
             'logo' => ['nullable', 'image', 'max:2048'],
             'email_notification' => ['required', 'email', 'max:255'],
             'email_notification_secondaire' => ['nullable', 'email', 'max:255'],

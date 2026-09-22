@@ -19,6 +19,7 @@ class User extends Authenticatable
         'logo',
         'adresse',
         'status',
+        'telephone',
         'email_notification',
         'email_notification_secondaire',
         'boutique_theme',

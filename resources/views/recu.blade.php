@@ -69,15 +69,6 @@
             padding-top: 10px;
             border-top: 1px solid #eee;
         }
-        .statut {
-            display: inline-block;
-            font-size: 9px;
-            font-weight: bold;
-            padding: 2px 8px;
-            border-radius: 10px;
-            background: #fef2f2;
-            color: #b91c1c;
-        }
     </style>
 </head>
 <body>
@@ -91,6 +82,9 @@
         <p class="boutique-nom">{{ $marchand->nom_boutique ?: 'Boutique' }}</p>
         @if ($marchand->adresse)
             <p class="boutique-sub">{{ $marchand->adresse }}</p>
+        @endif
+        @if ($marchand->telephone)
+            <p class="boutique-sub">{{ $marchand->telephone }}</p>
         @endif
     </div>
 
@@ -137,10 +131,6 @@
         <span class="ligne"><span>Livraison</span><span>{{ $commande->prix_livraison ? number_format($commande->prix_livraison, 0, ',', ' ').' Ar' : 'Gratuite' }}</span></span>
         <span class="ligne total-final"><span>TOTAL</span><span>{{ $commande->totalFormate() }}</span></span>
     </div>
-
-    <p style="text-align:center; margin-top:14px;">
-        <span class="statut">{{ $commande->statutLabel() }}</span>
-    </p>
 
     <div class="footer">
         Merci pour votre commande !<br>

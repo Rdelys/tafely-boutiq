@@ -80,6 +80,22 @@
                 @enderror
                 <p class="font-body text-xs text-gray-400 mt-1.5">Utilisée pour les livraisons et affichée sur votre vitrine si activée.</p>
             </div>
+
+            <div class="mt-5">
+                <label for="telephone" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Numéro de téléphone</label>
+                <input
+                    id="telephone"
+                    name="telephone"
+                    type="tel"
+                    value="{{ old('telephone', $user->telephone) }}"
+                    placeholder="ex : 034 00 333 20"
+                    class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('telephone') border-accent-400 @enderror"
+                >
+                @error('telephone')
+                    <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                @enderror
+                <p class="font-body text-xs text-gray-400 mt-1.5">Affiché sur le reçu que reçoivent vos clients après une commande.</p>
+            </div>
         </section>
 
         {{-- Section 2 : notifications de commande --}}
