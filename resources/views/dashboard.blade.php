@@ -11,22 +11,30 @@
             <p class="font-body text-gray-500 mt-1">Bienvenue{{ $user->hasPseudo() ? ', '.$user->pseudo : '' }} sur votre espace vendeur{{ $user->nom_boutique ? ' '.$user->nom_boutique : '' }}.</p>
         </div>
 
-        @if ($user->status === 'active')
-            <div class="bg-primary-50 text-primary-700 border border-primary-100 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm">
-                <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
-                <span class="font-body text-sm font-bold">Plan Actif payant</span>
-            </div>
-        @elseif ($user->status === 'test')
-            <div class="bg-accent-50 text-accent-700 border border-accent-100 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm">
-                <span class="material-symbols-outlined text-[18px]">info</span>
-                <span class="font-body text-sm font-bold">Essai en cours</span>
-            </div>
-        @else
-            <div class="bg-gray-100 text-gray-600 border border-gray-200 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm">
-                <span class="material-symbols-outlined text-[18px]">info</span>
-                <span class="font-body text-sm font-bold">Plan Gratuit</span>
-            </div>
-        @endif
+        <div class="flex flex-wrap items-center gap-3">
+            <a href="{{ route('ventes.create') }}"
+               class="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm px-5 py-2.5 rounded-full shadow-sm transition-colors">
+                <span class="material-symbols-outlined text-[18px]">point_of_sale</span>
+                Nouvelle vente
+            </a>
+
+            @if ($user->status === 'active')
+                <div class="bg-primary-50 text-primary-700 border border-primary-100 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm">
+                    <span class="material-symbols-outlined text-[18px]">workspace_premium</span>
+                    <span class="font-body text-sm font-bold">Plan Actif payant</span>
+                </div>
+            @elseif ($user->status === 'test')
+                <div class="bg-accent-50 text-accent-700 border border-accent-100 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm">
+                    <span class="material-symbols-outlined text-[18px]">info</span>
+                    <span class="font-body text-sm font-bold">Essai en cours</span>
+                </div>
+            @else
+                <div class="bg-gray-100 text-gray-600 border border-gray-200 px-4 py-2 rounded-full flex items-center gap-2 shadow-sm">
+                    <span class="material-symbols-outlined text-[18px]">info</span>
+                    <span class="font-body text-sm font-bold">Plan Gratuit</span>
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- grille stats + CTA --}}
@@ -52,12 +60,13 @@
             </div>
             <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                 <div class="flex justify-between items-start mb-4">
-                    <span class="font-body text-sm text-gray-500">Commandes reçues</span>
+                    <span class="font-body text-sm text-gray-500">Commandes et ventes</span>
                     <div class="bg-primary-50 p-1.5 rounded-full">
                         <span class="material-symbols-outlined text-primary-700 text-[20px]">shopping_cart</span>
                     </div>
                 </div>
                 <span class="font-display text-4xl font-bold text-primary-900">{{ $stats['commandes'] }}</span>
+                <span class="font-body text-xs text-gray-400 mt-1">{{ $stats['commandes_en_ligne'] }} en ligne · {{ $stats['ventes_boutique'] }} en boutique</span>
             </div>
         </div>
 
@@ -85,7 +94,13 @@
     <div class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100 mb-8">
         <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
             <h2 class="font-display text-lg font-bold text-primary-900">Chiffre d'affaires</h2>
-            <form method="GET" action="{{ route('dashboard') }}">
+            <form method="GET" action="{{ route('dashboard') }}" class="flex flex-wrap items-center gap-2">
+                <select name="source" onchange="this.form.submit()"
+                        class="text-xs font-body font-bold rounded-full px-3.5 py-2 border border-gray-200 bg-gray-50 text-gray-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <option value="toutes" @selected($source === 'toutes')>En ligne + boutique</option>
+                    <option value="en_ligne" @selected($source === 'en_ligne')>En ligne uniquement</option>
+                    <option value="boutique" @selected($source === 'boutique')>Boutique uniquement</option>
+                </select>
                 <select name="filtre" onchange="this.form.submit()"
                         class="text-xs font-body font-bold rounded-full px-3.5 py-2 border border-gray-200 bg-gray-50 text-gray-600 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-600">
                     <option value="toutes" @selected($filtre === 'toutes')>Toutes les commandes</option>
@@ -110,6 +125,39 @@
             </div>
         </div>
 
+        {{-- répartition du mois : en ligne vs boutique --}}
+        <div class="border border-gray-100 rounded-xl p-4 mb-6">
+            <p class="font-body text-sm font-semibold text-gray-600 mb-3">Répartition de ce mois-ci</p>
+
+            @if ($repartition['total'] > 0)
+                <div class="flex h-3 rounded-full overflow-hidden bg-gray-100 mb-4">
+                    <div class="bg-primary-700" style="width: {{ $repartition['en_ligne']['pourcent'] }}%"></div>
+                    <div class="bg-accent-500" style="width: {{ $repartition['boutique']['pourcent'] }}%"></div>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div class="flex items-start gap-3">
+                        <span class="h-3 w-3 rounded-full bg-primary-700 mt-1.5 shrink-0"></span>
+                        <div>
+                            <p class="font-body text-xs text-gray-500">En ligne · {{ $repartition['en_ligne']['pourcent'] }} %</p>
+                            <p class="font-display font-bold text-primary-900">{{ number_format($repartition['en_ligne']['montant'], 0, ',', ' ') }} Ar</p>
+                            <p class="font-body text-xs text-gray-400">{{ $repartition['en_ligne']['nombre'] }} commande{{ $repartition['en_ligne']['nombre'] > 1 ? 's' : '' }}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start gap-3">
+                        <span class="h-3 w-3 rounded-full bg-accent-500 mt-1.5 shrink-0"></span>
+                        <div>
+                            <p class="font-body text-xs text-gray-500">Boutique · {{ $repartition['boutique']['pourcent'] }} %</p>
+                            <p class="font-display font-bold text-primary-900">{{ number_format($repartition['boutique']['montant'], 0, ',', ' ') }} Ar</p>
+                            <p class="font-body text-xs text-gray-400">{{ $repartition['boutique']['nombre'] }} vente{{ $repartition['boutique']['nombre'] > 1 ? 's' : '' }}</p>
+                        </div>
+                    </div>
+                </div>
+            @else
+                <p class="font-body text-sm text-gray-400">Aucune vente ce mois-ci pour le moment.</p>
+            @endif
+        </div>
+
         {{-- graphique revenu --}}
         <div class="flex items-center justify-between mb-3">
             <p class="font-body text-sm font-semibold text-gray-600">Évolution du chiffre d'affaires</p>
@@ -129,11 +177,11 @@
         </div>
     </div>
 
-    {{-- suivi des commandes par statut --}}
+    {{-- suivi des commandes en ligne par statut --}}
     <div class="mb-8">
-        <h2 class="font-display text-lg font-bold text-primary-900 mb-4">Suivi des commandes</h2>
+        <h2 class="font-display text-lg font-bold text-primary-900 mb-4">Suivi des commandes en ligne</h2>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <a href="{{ route('commandes') }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <a href="{{ route('commandes', ['source' => 'en_ligne']) }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
                 <div class="h-12 w-12 rounded-full bg-accent-50 flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-accent-600 text-[22px]">pending_actions</span>
                 </div>
@@ -142,7 +190,7 @@
                     <p class="font-body text-xs text-gray-500">À prendre en compte</p>
                 </div>
             </a>
-            <a href="{{ route('commandes') }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <a href="{{ route('commandes', ['source' => 'en_ligne']) }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
                 <div class="h-12 w-12 rounded-full bg-primary-50 flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-primary-700 text-[22px]">local_shipping</span>
                 </div>
@@ -151,7 +199,7 @@
                     <p class="font-body text-xs text-gray-500">En cours de livraison</p>
                 </div>
             </a>
-            <a href="{{ route('commandes') }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+            <a href="{{ route('commandes', ['source' => 'en_ligne']) }}" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
                 <div class="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center shrink-0">
                     <span class="material-symbols-outlined text-green-600 text-[22px]">task_alt</span>
                 </div>
@@ -163,10 +211,10 @@
         </div>
     </div>
 
-    {{-- graphique nombre de commandes --}}
+    {{-- graphique nombre de commandes et ventes --}}
     <div class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100 mb-8">
         <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
-            <h2 class="font-display text-lg font-bold text-primary-900">Évolution du nombre de commandes</h2>
+            <h2 class="font-display text-lg font-bold text-primary-900">Évolution du nombre de commandes et ventes</h2>
             <div class="inline-flex rounded-full bg-gray-100 p-1">
                 <button type="button" id="btn-periode-jour" onclick="tafelyAfficherPeriode('jour')"
                         class="px-3.5 py-1.5 rounded-full text-xs font-body font-bold transition-all bg-white shadow-sm text-primary-700">
@@ -183,45 +231,56 @@
         </div>
     </div>
 
-    {{-- activité récente --}}
-    <div>
+    {{-- activité récente (paginée) --}}
+    <div id="activite" class="scroll-mt-24">
         <div class="flex justify-between items-center mb-4">
             <h2 class="font-display text-lg font-bold text-primary-900">Activité récente</h2>
             <a href="{{ route('commandes') }}" class="font-body text-sm font-semibold text-accent-600 hover:text-accent-700 transition-colors">Voir toutes les commandes</a>
         </div>
 
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            @forelse ($recentOrders as $order)
+            @forelse ($activite as $order)
                 <div class="p-4 flex items-center justify-between border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 min-w-0">
                         <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                            <span class="material-symbols-outlined text-gray-400">person</span>
+                            <span class="material-symbols-outlined text-gray-400">{{ $order['source'] === 'boutique' ? 'point_of_sale' : 'person' }}</span>
                         </div>
-                        <div>
-                            <p class="font-body font-bold text-primary-900 text-sm">{{ $order['id'] }}</p>
-                            <p class="font-body text-xs text-gray-500">{{ $order['date'] }} • {{ $order['items'] }} article(s)</p>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <p class="font-body font-bold text-primary-900 text-sm">{{ $order['id'] }}</p>
+                                @if ($order['source'] === 'boutique')
+                                    <span class="bg-primary-50 text-primary-700 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full">Boutique</span>
+                                @endif
+                            </div>
+                            <p class="font-body text-xs text-gray-500 truncate">{{ $order['client'] }} • {{ $order['date'] }} • {{ $order['items'] }} article(s)</p>
                         </div>
                     </div>
-                    <div class="text-right">
+                    <div class="text-right shrink-0 pl-3">
                         <p class="font-display font-bold text-primary-900">{{ $order['total'] }}</p>
-                        <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1
-                            {{ match($order['status']) {
-                                'Livrée' => 'bg-green-100 text-green-700',
-                                'En cours de livraison' => 'bg-primary-50 text-primary-700',
-                                default => 'bg-accent-50 text-accent-700',
-                            } }}">
-                            {{ $order['status'] }}
-                        </span>
+                        @if ($order['source'] === 'boutique')
+                            <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1 bg-green-100 text-green-700">Vendue</span>
+                        @else
+                            <span class="inline-block px-2 py-0.5 rounded text-xs font-semibold mt-1
+                                {{ match($order['status']) {
+                                    'Livrée' => 'bg-green-100 text-green-700',
+                                    'En cours de livraison' => 'bg-primary-50 text-primary-700',
+                                    default => 'bg-accent-50 text-accent-700',
+                                } }}">
+                                {{ $order['status'] }}
+                            </span>
+                        @endif
                     </div>
                 </div>
             @empty
                 <div class="p-10 text-center">
                     <span class="material-symbols-outlined text-4xl text-gray-300">shopping_cart</span>
                     <p class="font-body text-sm text-gray-500 mt-3">Aucune commande pour l'instant.</p>
-                    <p class="font-body text-xs text-gray-400 mt-1">Partagez le lien de votre boutique pour recevoir vos premières commandes.</p>
+                    <p class="font-body text-xs text-gray-400 mt-1">Partagez le lien de votre boutique ou enregistrez une vente en boutique.</p>
                 </div>
             @endforelse
         </div>
+
+        {{ $activite->links('pagination.tafely') }}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -229,7 +288,7 @@
         (function () {
             if (typeof Chart === 'undefined') return;
 
-            // ---- graphique nombre de commandes ----
+            // ---- graphique nombre de commandes et ventes ----
             const labelsJour = {{ \Illuminate\Support\Js::from($graphJours->pluck('label')) }};
             const dataJour = {{ \Illuminate\Support\Js::from($graphJours->pluck('total')) }};
             const labelsMois = {{ \Illuminate\Support\Js::from($graphMois->pluck('label')) }};
@@ -241,7 +300,7 @@
                 data: {
                     labels: labelsJour,
                     datasets: [{
-                        label: 'Commandes',
+                        label: 'Commandes et ventes',
                         data: dataJour,
                         borderColor: '#1d4ed8',
                         backgroundColor: 'rgba(29, 78, 216, 0.08)',

@@ -62,6 +62,7 @@
         @foreach ([
             ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
             ['route' => 'produits', 'icon' => 'inventory_2', 'label' => 'Produits'],
+            ['route' => 'ventes.create', 'icon' => 'point_of_sale', 'label' => 'Vente en boutique'],
             ['route' => 'commandes', 'icon' => 'shopping_cart', 'label' => 'Commandes'],
             ['route' => 'boutique', 'icon' => 'storefront', 'label' => 'Ma boutique'],
             ['route' => 'notifications', 'icon' => 'notifications', 'label' => 'Notifications'],
@@ -101,19 +102,24 @@
 </main>
 
 {{-- ============ BOTTOM NAV (mobile) ============ --}}
-<nav class="bg-white shadow-[0_-4px_20px_rgba(30,58,138,0.08)] fixed bottom-0 left-0 w-full z-50 flex md:hidden justify-around items-center px-4 pb-4 pt-2 rounded-t-3xl">
+<nav class="bg-white shadow-[0_-4px_20px_rgba(30,58,138,0.08)] fixed bottom-0 left-0 w-full z-50 flex md:hidden justify-around items-center px-2 pb-4 pt-2 rounded-t-3xl">
     <a href="{{ route('dashboard') }}"
-       @class(['flex flex-col items-center justify-center rounded-full px-4 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('dashboard'), 'text-gray-500' => ! request()->routeIs('dashboard')])>
+       @class(['flex flex-col items-center justify-center rounded-full px-3 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('dashboard'), 'text-gray-500' => ! request()->routeIs('dashboard')])>
         <span class="material-symbols-outlined" @if(request()->routeIs('dashboard')) style="font-variation-settings: 'FILL' 1;" @endif>home</span>
         <span class="font-body text-xs mt-0.5">Accueil</span>
     </a>
     <a href="{{ route('produits') }}"
-       @class(['flex flex-col items-center justify-center rounded-full px-4 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('produits'), 'text-gray-500' => ! request()->routeIs('produits')])>
+       @class(['flex flex-col items-center justify-center rounded-full px-3 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('produits'), 'text-gray-500' => ! request()->routeIs('produits')])>
         <span class="material-symbols-outlined" @if(request()->routeIs('produits')) style="font-variation-settings: 'FILL' 1;" @endif>grid_view</span>
         <span class="font-body text-xs mt-0.5">Produits</span>
     </a>
-    <a href="{{ route('commandes') }}" class="relative flex flex-col items-center justify-center rounded-full px-4 py-1.5"
-       @class(['bg-primary-50 text-primary-700' => request()->routeIs('commandes'), 'text-gray-500' => ! request()->routeIs('commandes')])>
+    <a href="{{ route('ventes.create') }}"
+       @class(['flex flex-col items-center justify-center rounded-full px-3 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('ventes.create'), 'text-gray-500' => ! request()->routeIs('ventes.create')])>
+        <span class="material-symbols-outlined" @if(request()->routeIs('ventes.create')) style="font-variation-settings: 'FILL' 1;" @endif>point_of_sale</span>
+        <span class="font-body text-xs mt-0.5">Caisse</span>
+    </a>
+    <a href="{{ route('commandes') }}"
+       @class(['relative flex flex-col items-center justify-center rounded-full px-3 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('commandes'), 'text-gray-500' => ! request()->routeIs('commandes')])>
         <span class="relative">
             <span class="material-symbols-outlined" @if(request()->routeIs('commandes')) style="font-variation-settings: 'FILL' 1;" @endif>receipt_long</span>
             @if ($commandesAFaire > 0)
@@ -122,10 +128,10 @@
                 </span>
             @endif
         </span>
-        <span class="font-body text-xs mt-0.5">Ventes</span>
+        <span class="font-body text-xs mt-0.5">Commandes</span>
     </a>
     <a href="{{ route('parametres') }}"
-       @class(['flex flex-col items-center justify-center rounded-full px-4 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('parametres'), 'text-gray-500' => ! request()->routeIs('parametres')])>
+       @class(['flex flex-col items-center justify-center rounded-full px-3 py-1.5', 'bg-primary-50 text-primary-700' => request()->routeIs('parametres'), 'text-gray-500' => ! request()->routeIs('parametres')])>
         <span class="material-symbols-outlined" @if(request()->routeIs('parametres')) style="font-variation-settings: 'FILL' 1;" @endif>menu</span>
         <span class="font-body text-xs mt-0.5">Menu</span>
     </a>

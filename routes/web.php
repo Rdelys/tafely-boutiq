@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ParametresController;
 use App\Http\Controllers\ProduitController;
+use App\Http\Controllers\VenteBoutiqueController;
 use App\Http\Controllers\VitrineController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/commandes', [CommandeController::class, 'index'])->name('commandes');
     Route::get('/commandes/{commande}/facture', [CommandeController::class, 'facture'])->name('commandes.facture');
     Route::put('/commandes/{commande}/statut', [CommandeController::class, 'updateStatut'])->name('commandes.statut');
+
+    // Ventes en boutique physique (caisse)
+    Route::get('/ventes/nouvelle', [VenteBoutiqueController::class, 'create'])->name('ventes.create');
+    Route::post('/ventes', [VenteBoutiqueController::class, 'store'])->name('ventes.store');
 
     // Pages vides pour l'instant — à brancher sur de vrais contrôleurs/modèles plus tard.
     Route::view('/notifications', 'notifications')->name('notifications');

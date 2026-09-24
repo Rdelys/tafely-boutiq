@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,9 +10,13 @@ use Illuminate\Support\Str;
 
 class Commande extends Model
 {
+    public const SOURCE_EN_LIGNE = 'en_ligne';
+    public const SOURCE_BOUTIQUE = 'boutique';
+
     protected $fillable = [
         'user_id',
         'numero',
+        'source',
         'nom_client',
         'telephone_client',
         'mode',
@@ -21,6 +26,7 @@ class Commande extends Model
         'sous_total',
         'prix_livraison',
         'total',
+        'mode_paiement',
         'statut',
         'stock_decremente',
     ];
@@ -39,8 +45,14 @@ class Commande extends Model
     protected static function booted(): void
     {
         static::creating(function (Commande $commande) {
+            if (empty($commande->source)) {
+                $commande->source = self::SOURCE_EN_LIGNE;
+            }
+
             if (empty($commande->numero)) {
-                $commande->numero = 'TAF-'.now()->format('ymd').'-'.strtoupper(Str::random(4));
+                // TAF-... pour les commandes en ligne, BTQ-... pour les ventes en boutique
+                $prefixe = $commande->source === self::SOURCE_BOUTIQUE ? 'BTQ' : 'TAF';
+                $commande->numero = $prefixe.'-'.now()->format('ymd').'-'.strtoupper(Str::random(4));
             }
         });
     }
@@ -55,6 +67,35 @@ class Commande extends Model
         return $this->hasMany(CommandeLigne::class);
     }
 
+    // ---- Scopes ----
+
+    public function scopeEnLigne(Builder $query): Builder
+    {
+        return $query->where('source', self::SOURCE_EN_LIGNE);
+    }
+
+    public function scopeBoutique(Builder $query): Builder
+    {
+        return $query->where('source', self::SOURCE_BOUTIQUE);
+    }
+
+    // ---- Helpers ----
+
+    public function estVenteBoutique(): bool
+    {
+        return $this->source === self::SOURCE_BOUTIQUE;
+    }
+
+    public function estALivrer(): bool
+    {
+        return $this->mode === 'livrer';
+    }
+
+    public function nomClientAffiche(): string
+    {
+        return $this->nom_client ?: 'Client de passage';
+    }
+
     public function statutLabel(): string
     {
         return match ($this->statut) {
@@ -64,9 +105,15 @@ class Commande extends Model
         };
     }
 
-    public function estALivrer(): bool
+    public function modePaiementLabel(): string
     {
-        return $this->mode === 'livrer';
+        return match ($this->mode_paiement) {
+            'especes' => 'Espèces',
+            'mvola' => 'MVola',
+            'orange_money' => 'Orange Money',
+            'autre' => 'Autre',
+            default => '—',
+        };
     }
 
     public function nombreArticles(): int

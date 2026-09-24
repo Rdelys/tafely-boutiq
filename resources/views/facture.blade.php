@@ -26,6 +26,10 @@
     <style>
         body { font-family: 'Be Vietnam Pro', sans-serif; }
         .font-display { font-family: 'Hanken Grotesk', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
         @media print {
             .no-print { display: none !important; }
             body { background: white !important; }
@@ -63,6 +67,9 @@
                     @if ($marchand->adresse)
                         <p class="font-body text-xs text-gray-500">{{ $marchand->adresse }}</p>
                     @endif
+                    @if ($marchand->telephone)
+                        <p class="font-body text-xs text-gray-500">{{ $marchand->telephone }}</p>
+                    @endif
                     <p class="font-body text-xs text-gray-500">{{ $marchand->email_notification ?: $marchand->email }}</p>
                 </div>
             </div>
@@ -77,28 +84,38 @@
         <div class="grid sm:grid-cols-2 gap-6 py-6 border-b border-gray-100">
             <div>
                 <p class="font-body text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Client</p>
-                <p class="font-body font-semibold text-sm text-gray-900">{{ $commande->nom_client }}</p>
-                <p class="font-body text-sm text-gray-500">{{ $commande->telephone_client }}</p>
+                <p class="font-body font-semibold text-sm text-gray-900">{{ $commande->nomClientAffiche() }}</p>
+                @if ($commande->telephone_client)
+                    <p class="font-body text-sm text-gray-500">{{ $commande->telephone_client }}</p>
+                @endif
             </div>
             <div>
-                <p class="font-body text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">
-                    {{ $commande->estALivrer() ? 'Livraison' : 'Récupération' }}
-                </p>
-                @if ($commande->estALivrer())
-                    <p class="font-body text-sm text-gray-700">{{ $commande->adresse_livraison }}</p>
+                @if ($commande->estVenteBoutique())
+                    <p class="font-body text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">Vente en boutique</p>
+                    <p class="font-body text-sm text-gray-700">{{ $commande->created_at->format('d/m/Y à H:i') }}</p>
+                    <span class="inline-block mt-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700">
+                        Payée · {{ $commande->modePaiementLabel() }}
+                    </span>
                 @else
-                    <p class="font-body text-sm text-gray-700">
-                        {{ $commande->date_recuperation?->format('d/m/Y') ?: '—' }} à {{ $commande->heure_recuperation ?: '—' }}
+                    <p class="font-body text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">
+                        {{ $commande->estALivrer() ? 'Livraison' : 'Récupération' }}
                     </p>
+                    @if ($commande->estALivrer())
+                        <p class="font-body text-sm text-gray-700">{{ $commande->adresse_livraison }}</p>
+                    @else
+                        <p class="font-body text-sm text-gray-700">
+                            {{ $commande->date_recuperation?->format('d/m/Y') ?: '—' }} à {{ $commande->heure_recuperation ?: '—' }}
+                        </p>
+                    @endif
+                    <span class="inline-block mt-2 px-2.5 py-1 rounded-full text-xs font-semibold
+                        {{ match($commande->statut) {
+                            'livree' => 'bg-green-50 text-green-700',
+                            'en_cours_de_livraison' => 'bg-primary-50 text-primary-700',
+                            default => 'bg-accent-50 text-accent-700',
+                        } }}">
+                        {{ $commande->statutLabel() }}
+                    </span>
                 @endif
-                <span class="inline-block mt-2 px-2.5 py-1 rounded-full text-xs font-semibold
-                    {{ match($commande->statut) {
-                        'livree' => 'bg-green-50 text-green-700',
-                        'en_cours_de_livraison' => 'bg-primary-50 text-primary-700',
-                        default => 'bg-accent-50 text-accent-700',
-                    } }}">
-                    {{ $commande->statutLabel() }}
-                </span>
             </div>
         </div>
 
@@ -129,15 +146,20 @@
         {{-- totaux --}}
         <div class="flex justify-end">
             <div class="w-full max-w-[220px] space-y-2">
-                <div class="flex justify-between font-body text-sm text-gray-500">
-                    <span>Sous-total</span>
-                    <span>{{ $commande->sousTotalFormate() }}</span>
-                </div>
-                <div class="flex justify-between font-body text-sm text-gray-500">
-                    <span>Livraison</span>
-                    <span>{{ $commande->prix_livraison ? number_format($commande->prix_livraison, 0, ',', ' ').' Ar' : 'Gratuite' }}</span>
-                </div>
-                <div class="flex justify-between font-display font-bold text-lg text-primary-900 pt-2 border-t border-gray-100">
+                @unless ($commande->estVenteBoutique())
+                    <div class="flex justify-between font-body text-sm text-gray-500">
+                        <span>Sous-total</span>
+                        <span>{{ $commande->sousTotalFormate() }}</span>
+                    </div>
+                    <div class="flex justify-between font-body text-sm text-gray-500">
+                        <span>Livraison</span>
+                        <span>{{ $commande->prix_livraison ? number_format($commande->prix_livraison, 0, ',', ' ').' Ar' : 'Gratuite' }}</span>
+                    </div>
+                @endunless
+                <div @class([
+                    'flex justify-between font-display font-bold text-lg text-primary-900',
+                    'pt-2 border-t border-gray-100' => ! $commande->estVenteBoutique(),
+                ])>
                     <span>Total</span>
                     <span>{{ $commande->totalFormate() }}</span>
                 </div>
@@ -145,7 +167,11 @@
         </div>
 
         <p class="text-center font-body text-xs text-gray-400 mt-10 pt-6 border-t border-gray-100">
-            Facture générée par {{ $marchand->nom_boutique ?: 'la boutique' }} via Tafely.
+            @if ($commande->estVenteBoutique())
+                Merci pour votre achat chez {{ $marchand->nom_boutique ?: 'nous' }} ! Facture générée via Tafely.
+            @else
+                Facture générée par {{ $marchand->nom_boutique ?: 'la boutique' }} via Tafely.
+            @endif
         </p>
     </div>
 

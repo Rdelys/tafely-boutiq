@@ -18,6 +18,11 @@ use Illuminate\View\View;
 class CommandeController extends Controller
 {
     /**
+     * Nombre de commandes affichées par page dans le tableau du marchand.
+     */
+    private const PAR_PAGE = 5;
+
+    /**
      * Réception d'un panier (une ou plusieurs lignes) depuis la vitrine
      * publique. Aucune connexion requise.
      */
@@ -99,6 +104,7 @@ class CommandeController extends Controller
 
             $commande = Commande::create([
                 'user_id' => $marchand->id,
+                'source' => Commande::SOURCE_EN_LIGNE,
                 'nom_client' => $donnees['nom_client'],
                 'telephone_client' => $donnees['telephone_client'],
                 'mode' => $donnees['mode'],
@@ -127,13 +133,36 @@ class CommandeController extends Controller
     }
 
     /**
-     * Liste des commandes du marchand connecté.
+     * Liste paginée des commandes du marchand connecté, filtrable par origine :
+     * ?source=en_ligne (vitrine) ou ?source=boutique (ventes en magasin).
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $commandes = Auth::user()->commandes()->with('lignes')->latest()->get();
+        $base = Auth::user()->commandes();
 
-        return view('commandes', compact('commandes'));
+        $compteurs = [
+            'toutes' => (clone $base)->count(),
+            'en_ligne' => (clone $base)->enLigne()->count(),
+            'boutique' => (clone $base)->boutique()->count(),
+        ];
+
+        $source = $request->query('source', 'toutes');
+        if (! in_array($source, ['en_ligne', 'boutique'], true)) {
+            $source = 'toutes';
+        }
+
+        // Double tri (date puis id) pour un ordre stable d'une page à l'autre.
+        $requete = (clone $base)->with('lignes')->latest()->latest('id');
+
+        if ($source === 'en_ligne') {
+            $requete->enLigne();
+        } elseif ($source === 'boutique') {
+            $requete->boutique();
+        }
+
+        $commandes = $requete->paginate(self::PAR_PAGE)->withQueryString();
+
+        return view('commandes', compact('commandes', 'source', 'compteurs'));
     }
 
     /**
@@ -168,10 +197,13 @@ class CommandeController extends Controller
     /**
      * Changement de statut par le marchand. Décrémente le stock des
      * produits une seule fois, au moment où la commande passe à "livrée".
+     * Les ventes en boutique sont déjà livrées et payées : leur statut
+     * n'est pas modifiable.
      */
     public function updateStatut(Request $request, Commande $commande): RedirectResponse
     {
         abort_if($commande->user_id !== Auth::id(), 403);
+        abort_if($commande->estVenteBoutique(), 403, 'Le statut d\'une vente en boutique ne peut pas être modifié.');
 
         $validated = $request->validate([
             'statut' => ['required', 'in:a_prendre_en_compte,en_cours_de_livraison,livree'],
