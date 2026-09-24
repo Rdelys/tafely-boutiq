@@ -78,7 +78,9 @@
                                     @click="selected = {{ \Illuminate\Support\Js::from([
                                         'nom' => $produit->nom,
                                         'description' => $produit->description,
-                                        'prix' => $produit->prixFormate(),
+                                        'prix' => $produit->prixFinalFormate(),
+                                        'prixInitial' => $produit->aRemise() ? $produit->prixFormate() : null,
+                                        'remise' => $produit->remiseLabel(),
                                         'image' => $produit->image ? asset('storage/'.$produit->image) : null,
                                         'livraison' => $produit->aLivraison(),
                                         'prixLivraison' => $produit->prix_livraison ? number_format($produit->prix_livraison, 0, ',', ' ').' Ar' : null,
@@ -97,8 +99,12 @@
                                             <span class="font-body font-semibold text-sm text-primary-900 truncate max-w-[160px] sm:max-w-xs">{{ $produit->nom }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 font-display font-bold text-sm text-primary-800 whitespace-nowrap">
-                                        {{ $produit->prixFormate() }}
+                                    <td class="px-4 py-3 whitespace-nowrap">
+                                        <span class="font-display font-bold text-sm text-primary-800">{{ $produit->prixFinalFormate() }}</span>
+                                        @if ($produit->aRemise())
+                                            <span class="block font-body text-xs text-gray-400 line-through">{{ $produit->prixFormate() }}</span>
+                                            <span class="inline-block bg-accent-50 text-accent-700 text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5">{{ $produit->remiseLabel() }}</span>
+                                        @endif
                                     </td>
                                     <td class="hidden md:table-cell px-4 py-3">
                                         @if ($produit->aLivraison())
@@ -177,7 +183,16 @@
 
                             <div class="p-6">
                                 <h2 class="font-display text-xl font-bold text-primary-900" x-text="selected.nom"></h2>
-                                <p class="font-display text-2xl font-bold text-primary-800 mt-1" x-text="selected.prix"></p>
+
+                                <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-1">
+                                    <p class="font-display text-2xl font-bold text-primary-800" x-text="selected.prix"></p>
+                                    <template x-if="selected.prixInitial">
+                                        <p class="font-body text-sm text-gray-400 line-through" x-text="selected.prixInitial"></p>
+                                    </template>
+                                    <template x-if="selected.remise">
+                                        <span class="bg-accent-50 text-accent-700 text-xs font-bold px-2.5 py-1 rounded-full" x-text="selected.remise"></span>
+                                    </template>
+                                </div>
 
                                 <p class="font-body text-sm text-gray-500 mt-3" x-show="selected.description" x-text="selected.description"></p>
 

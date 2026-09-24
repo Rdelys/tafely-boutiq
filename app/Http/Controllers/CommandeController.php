@@ -84,7 +84,10 @@ class CommandeController extends Controller
                     continue;
                 }
 
-                $sousTotalLigne = $produit->prix * $item['quantite'];
+                // Le prix vient toujours de la base (prix après promo éventuelle),
+                // jamais du navigateur du client.
+                $prixUnitaire = $produit->prixFinal();
+                $sousTotalLigne = $prixUnitaire * $item['quantite'];
                 $sousTotal += $sousTotalLigne;
 
                 if ($donnees['mode'] === 'livrer' && $produit->aLivraison()) {
@@ -94,7 +97,8 @@ class CommandeController extends Controller
                 $lignesAPreparer[] = [
                     'produit_id' => $produit->id,
                     'nom_produit' => $produit->nom,
-                    'prix_unitaire' => $produit->prix,
+                    'prix_unitaire' => $prixUnitaire,
+                    'prix_initial' => $produit->aRemise() ? $produit->prix : null,
                     'quantite' => $item['quantite'],
                     'sous_total' => $sousTotalLigne,
                 ];

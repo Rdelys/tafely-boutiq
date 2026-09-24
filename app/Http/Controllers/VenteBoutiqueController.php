@@ -81,7 +81,9 @@ class VenteBoutiqueController extends Controller
                     ]);
                 }
 
-                $sousTotalLigne = $produit->prix * $quantite;
+                // Prix après promo éventuelle, calculé côté serveur.
+                $prixUnitaire = $produit->prixFinal();
+                $sousTotalLigne = $prixUnitaire * $quantite;
                 $sousTotal += $sousTotalLigne;
 
                 $lignesAPreparer[] = [
@@ -90,7 +92,8 @@ class VenteBoutiqueController extends Controller
                     'donnees' => [
                         'produit_id' => $produit->id,
                         'nom_produit' => $produit->nom,
-                        'prix_unitaire' => $produit->prix,
+                        'prix_unitaire' => $prixUnitaire,
+                        'prix_initial' => $produit->aRemise() ? $produit->prix : null,
                         'quantite' => $quantite,
                         'sous_total' => $sousTotalLigne,
                     ],

@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ProduitController extends Controller
@@ -96,6 +97,8 @@ class ProduitController extends Controller
 
     private function validated(Request $request): array
     {
+        $typeRemise = $request->input('remise_type');
+
         $validated = $request->validate([
             'nom' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
@@ -104,6 +107,15 @@ class ProduitController extends Controller
             'image' => ['nullable', 'image', 'max:4096'],
             'livraison' => ['required', 'in:aucune,payante'],
             'prix_livraison' => ['nullable', 'required_if:livraison,payante', 'integer', 'min:0'],
+            'remise_type' => ['nullable', 'in:aucune,pourcentage,montant'],
+            'remise_valeur' => [
+                'nullable',
+                'integer',
+                'min:1',
+                Rule::requiredIf(fn () => in_array($typeRemise, ['pourcentage', 'montant'], true)),
+                Rule::when($typeRemise === 'pourcentage', ['max:99']),
+                Rule::when($typeRemise === 'montant', ['lt:prix']),
+            ],
         ], [
             'nom.required' => 'Le nom du produit est obligatoire.',
             'prix.required' => 'Le prix est obligatoire.',
@@ -111,11 +123,22 @@ class ProduitController extends Controller
             'image.image' => 'Le fichier doit être une image.',
             'image.max' => "L'image ne doit pas dépasser 4 Mo.",
             'prix_livraison.required_if' => 'Indiquez le prix de la livraison, ou choisissez "Sans livraison".',
+            'remise_valeur.required' => 'Indiquez la valeur de la remise, ou choisissez "Aucune remise".',
+            'remise_valeur.integer' => 'La remise doit être un nombre entier.',
+            'remise_valeur.min' => 'La remise doit être supérieure à 0.',
+            'remise_valeur.max' => 'Le pourcentage de remise doit être compris entre 1 et 99.',
+            'remise_valeur.lt' => 'La remise doit être inférieure au prix du produit.',
         ]);
 
         // Si "sans livraison" est choisi, on ignore un éventuel prix saisi avant.
         if ($validated['livraison'] === 'aucune') {
             $validated['prix_livraison'] = null;
+        }
+
+        // Si "aucune remise" est choisi (ou rien n'est envoyé), on efface la remise.
+        if (($validated['remise_type'] ?? 'aucune') === 'aucune') {
+            $validated['remise_type'] = null;
+            $validated['remise_valeur'] = null;
         }
 
         return $validated;

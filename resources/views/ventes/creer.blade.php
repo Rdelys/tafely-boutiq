@@ -29,8 +29,11 @@
         <div x-data="venteCaisse({{ \Illuminate\Support\Js::from($produits->map(fn ($p) => [
                 'id' => $p->id,
                 'nom' => $p->nom,
-                'prix' => $p->prix,
-                'prixFormate' => $p->prixFormate(),
+                'prix' => $p->prixFinal(),
+                'prixFormate' => $p->prixFinalFormate(),
+                'prixInitial' => $p->aRemise() ? $p->prix : null,
+                'prixInitialFormate' => $p->aRemise() ? $p->prixFormate() : null,
+                'remiseLabel' => $p->remiseLabel(),
                 'image' => $p->image ? asset('storage/'.$p->image) : null,
                 'stock' => $p->stock,
             ])->values()->all()) }})"
@@ -48,23 +51,31 @@
                     <template x-for="p in produitsFiltres" :key="p.id">
                         <button type="button" @click="ajouter(p)" :disabled="p.stock !== null && p.stock <= 0"
                                 class="relative text-left bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden transition-all hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                            <div class="h-24 bg-gray-100 flex items-center justify-center overflow-hidden">
+                            <div class="relative h-24 bg-gray-100 flex items-center justify-center overflow-hidden">
                                 <template x-if="p.image">
                                     <img :src="p.image" :alt="p.nom" class="h-full w-full object-cover">
                                 </template>
                                 <template x-if="! p.image">
                                     <span class="material-symbols-outlined text-gray-300 text-4xl">inventory_2</span>
                                 </template>
+                                <template x-if="p.remiseLabel">
+                                    <span class="absolute bottom-1.5 left-1.5 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow" x-text="p.remiseLabel"></span>
+                                </template>
                             </div>
                             <div class="p-3">
                                 <p class="font-body font-semibold text-sm text-gray-900 truncate" x-text="p.nom"></p>
-                                <p class="font-display font-bold text-sm text-primary-800 mt-0.5" x-text="p.prixFormate"></p>
+                                <div class="flex flex-wrap items-baseline gap-x-1.5 mt-0.5">
+                                    <p class="font-display font-bold text-sm text-primary-800" x-text="p.prixFormate"></p>
+                                    <template x-if="p.prixInitialFormate">
+                                        <p class="font-body text-xs text-gray-400 line-through" x-text="p.prixInitialFormate"></p>
+                                    </template>
+                                </div>
                                 <p class="font-body text-xs mt-1"
                                    :class="p.stock !== null && p.stock <= 0 ? 'text-accent-600 font-semibold' : 'text-gray-400'"
                                    x-text="libelleStock(p)"></p>
                             </div>
                             <span x-show="quantiteDansPanier(p.id) > 0" x-cloak x-text="quantiteDansPanier(p.id)"
-                                  class="absolute top-2 right-2 bg-accent-500 text-white text-[11px] font-bold h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center shadow"></span>
+                                  class="absolute top-2 right-2 bg-primary-700 text-white text-[11px] font-bold h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center shadow"></span>
                         </button>
                     </template>
                 </div>
@@ -93,7 +104,10 @@
                             <div class="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
                                 <div class="flex-1 min-w-0">
                                     <p class="font-body font-semibold text-sm text-gray-900 truncate" x-text="item.nom"></p>
-                                    <p class="font-body text-xs text-gray-500" x-text="formatMonnaie(item.prix) + ' × ' + item.quantite + ' = ' + formatMonnaie(item.prix * item.quantite)"></p>
+                                    <p class="font-body text-xs text-gray-500">
+                                        <span x-text="formatMonnaie(item.prix) + ' × ' + item.quantite + ' = ' + formatMonnaie(item.prix * item.quantite)"></span>
+                                        <span x-show="item.prixInitial" x-cloak class="text-gray-400 line-through ml-1" x-text="item.prixInitial ? formatMonnaie(item.prixInitial) : ''"></span>
+                                    </p>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
                                     <button type="button" @click="majQuantite(item.id, -1)" class="h-7 w-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-white">−</button>
@@ -135,9 +149,15 @@
                     </div>
 
                     {{-- total --}}
-                    <div class="flex justify-between items-center border-t border-gray-100 pt-4 mb-4">
-                        <span class="font-body text-sm text-gray-500">Total (<span x-text="nombreArticles"></span> article<span x-show="nombreArticles > 1">s</span>)</span>
-                        <span class="font-display text-2xl font-bold text-primary-900" x-text="formatMonnaie(total)"></span>
+                    <div class="border-t border-gray-100 pt-4 mb-4">
+                        <div x-show="economie > 0" x-cloak class="flex justify-between items-center font-body text-xs text-green-600 mb-2">
+                            <span>Remises produits</span>
+                            <span class="font-semibold" x-text="'- ' + formatMonnaie(economie)"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-body text-sm text-gray-500">Total (<span x-text="nombreArticles"></span> article<span x-show="nombreArticles > 1">s</span>)</span>
+                            <span class="font-display text-2xl font-bold text-primary-900" x-text="formatMonnaie(total)"></span>
+                        </div>
                     </div>
 
                     <button type="button" @click="enregistrer()" :disabled="loading || panier.length === 0"
@@ -204,6 +224,10 @@
                     get total() {
                         return this.panier.reduce((s, i) => s + i.prix * i.quantite, 0);
                     },
+                    // Total des remises produits appliquées sur le ticket.
+                    get economie() {
+                        return this.panier.reduce((s, i) => s + (i.prixInitial ? (i.prixInitial - i.prix) * i.quantite : 0), 0);
+                    },
 
                     formatMonnaie(n) {
                         return new Intl.NumberFormat('fr-FR').format(n) + ' Ar';
@@ -233,7 +257,7 @@
                         if (existant) {
                             existant.quantite++;
                         } else {
-                            this.panier.push({ id: p.id, nom: p.nom, prix: p.prix, stock: p.stock, quantite: 1 });
+                            this.panier.push({ id: p.id, nom: p.nom, prix: p.prix, prixInitial: p.prixInitial, stock: p.stock, quantite: 1 });
                         }
                     },
                     majQuantite(id, delta) {

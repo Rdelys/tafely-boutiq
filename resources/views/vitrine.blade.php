@@ -46,6 +46,7 @@
 
             get nombreArticles() { return this.panier.reduce((s, i) => s + i.quantite, 0); },
             get sousTotal() { return this.panier.reduce((s, i) => s + (i.prix * i.quantite), 0); },
+            get economie() { return this.panier.reduce((s, i) => s + (i.prixInitial ? (i.prixInitial - i.prix) * i.quantite : 0), 0); },
             get livraisonMax() { return this.panier.filter(i => i.livraison).reduce((m, i) => Math.max(m, i.prixLivraison || 0), 0); },
             get total() { return this.sousTotal + (this.mode === 'livrer' ? this.livraisonMax : 0); },
             get formatteMonnaie() { return (n) => new Intl.NumberFormat('fr-FR').format(n) + ' Ar'; },
@@ -208,8 +209,11 @@
                                 'id' => $produit->id,
                                 'nom' => $produit->nom,
                                 'description' => $produit->description,
-                                'prix' => $produit->prix,
-                                'prixFormate' => $produit->prixFormate(),
+                                'prix' => $produit->prixFinal(),
+                                'prixFormate' => $produit->prixFinalFormate(),
+                                'prixInitial' => $produit->aRemise() ? $produit->prix : null,
+                                'prixInitialFormate' => $produit->aRemise() ? $produit->prixFormate() : null,
+                                'remiseLabel' => $produit->remiseLabel(),
                                 'image' => $produit->image ? asset('storage/'.$produit->image) : null,
                                 'livraison' => $produit->aLivraison(),
                                 'prixLivraison' => $produit->prix_livraison,
@@ -226,6 +230,10 @@
                                         <span class="material-symbols-outlined text-gray-300 text-5xl">inventory_2</span>
                                     @endif
 
+                                    @if ($produit->aRemise() && ! $rupture)
+                                        <span class="absolute top-3 left-3 bg-accent-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">{{ $produit->remiseLabel() }}</span>
+                                    @endif
+
                                     @if ($rupture)
                                         <div class="absolute inset-0 bg-gray-900/40 flex items-center justify-center">
                                             <span class="bg-white/95 text-gray-800 text-xs font-bold px-3 py-1.5 rounded-full">Rupture de stock</span>
@@ -235,7 +243,13 @@
                                 <div class="p-4">
                                     <h3 class="font-body font-semibold text-sm text-gray-900 truncate cursor-pointer"
                                         @click="selected = {{ \Illuminate\Support\Js::from($donneesProduit) }}; selQuantite = 1">{{ $produit->nom }}</h3>
-                                    <p class="font-display font-bold text-lg mt-1" style="color: {{ $couleurAccent }}">{{ $produit->prixFormate() }}</p>
+
+                                    <div class="flex flex-wrap items-baseline gap-x-2 mt-1">
+                                        <p class="font-display font-bold text-lg" style="color: {{ $couleurAccent }}">{{ $produit->prixFinalFormate() }}</p>
+                                        @if ($produit->aRemise())
+                                            <p class="font-body text-xs text-gray-400 line-through">{{ $produit->prixFormate() }}</p>
+                                        @endif
+                                    </div>
 
                                     <div class="flex items-center gap-2 mt-2">
                                         @if ($produit->aLivraison())
@@ -296,7 +310,17 @@
 
                                     <div class="p-6">
                                         <h2 class="font-display text-xl font-bold text-gray-900" x-text="selected.nom"></h2>
-                                        <p class="font-display text-2xl font-bold mt-1" :style="`color: {{ $couleurAccent }}`" x-text="selected.prixFormate"></p>
+
+                                        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-1">
+                                            <p class="font-display text-2xl font-bold" :style="`color: {{ $couleurAccent }}`" x-text="selected.prixFormate"></p>
+                                            <template x-if="selected.prixInitialFormate">
+                                                <p class="font-body text-sm text-gray-400 line-through" x-text="selected.prixInitialFormate"></p>
+                                            </template>
+                                            <template x-if="selected.remiseLabel">
+                                                <span class="bg-accent-500 text-white text-xs font-bold px-2.5 py-1 rounded-full" x-text="selected.remiseLabel"></span>
+                                            </template>
+                                        </div>
+
                                         <p class="font-body text-sm text-gray-500 mt-3" x-show="selected.description" x-text="selected.description"></p>
 
                                         <div class="flex flex-wrap items-center gap-2 mt-4">
@@ -388,7 +412,10 @@
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="font-body font-semibold text-sm text-gray-900 truncate" x-text="item.nom"></p>
-                                    <p class="font-body text-xs text-gray-500" x-text="formatteMonnaie(item.prix)"></p>
+                                    <p class="font-body text-xs text-gray-500">
+                                        <span x-text="formatteMonnaie(item.prix)"></span>
+                                        <span x-show="item.prixInitialFormate" x-cloak class="text-gray-400 line-through ml-1" x-text="item.prixInitialFormate"></span>
+                                    </p>
                                 </div>
                                 <div class="flex items-center gap-2 shrink-0">
                                     <button type="button" @click="majQuantite(item.id, -1)" class="h-7 w-7 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-white">−</button>
@@ -404,6 +431,10 @@
                             <div class="flex justify-between font-body text-sm text-gray-600 mb-1">
                                 <span>Sous-total (<span x-text="nombreArticles"></span> article<span x-show="nombreArticles > 1">s</span>)</span>
                                 <span class="font-bold text-gray-900" x-text="formatteMonnaie(sousTotal)"></span>
+                            </div>
+                            <div x-show="economie > 0" x-cloak class="flex justify-between font-body text-xs text-green-600">
+                                <span>Vous économisez</span>
+                                <span class="font-semibold" x-text="formatteMonnaie(economie)"></span>
                             </div>
                             <button type="button" @click="vueCart = 'checkout'"
                                     class="w-full mt-4 flex items-center justify-center gap-2 text-white font-body font-bold text-sm py-3 {{ $rayonBtn }} transition-opacity hover:opacity-90"
@@ -452,6 +483,9 @@
                     <div class="border-t border-gray-100 pt-4 mt-2 space-y-1.5 mb-4">
                         <div class="flex justify-between font-body text-xs text-gray-500">
                             <span>Sous-total</span><span x-text="formatteMonnaie(sousTotal)"></span>
+                        </div>
+                        <div class="flex justify-between font-body text-xs text-green-600" x-show="economie > 0" x-cloak>
+                            <span>Vous économisez</span><span x-text="formatteMonnaie(economie)"></span>
                         </div>
                         <div class="flex justify-between font-body text-xs text-gray-500" x-show="mode === 'livrer' && livraisonMax > 0">
                             <span>Livraison</span><span x-text="formatteMonnaie(livraisonMax)"></span>
