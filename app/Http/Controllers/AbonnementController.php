@@ -22,6 +22,9 @@ class AbonnementController extends Controller
         return view('abonnement');
     }
 
+    /**
+     * Souscription à l'abonnement mensuel.
+     */
     public function souscrire(): RedirectResponse
     {
         return $this->demarrerPaiement(
@@ -31,6 +34,9 @@ class AbonnementController extends Controller
         );
     }
 
+    /**
+     * Achat d'un pack de 10 produits.
+     */
     public function acheterPack(): RedirectResponse
     {
         return $this->demarrerPaiement(
@@ -40,6 +46,9 @@ class AbonnementController extends Controller
         );
     }
 
+    /**
+     * Création du paiement Papi.
+     */
     private function demarrerPaiement(
         string $type,
         int $montant,
@@ -47,13 +56,21 @@ class AbonnementController extends Controller
     ): RedirectResponse {
         $user = Auth::user();
 
-        $prefixe = $type === 'abonnement' ? 'ABN' : 'PCK';
+        $prefixe = $type === 'abonnement'
+            ? 'ABN'
+            : 'PCK';
 
         $reference = $prefixe
             . '-'
             . now()->format('ymd')
             . '-'
             . Str::upper(Str::random(6));
+
+        /*
+        |--------------------------------------------------------------------------
+        | Création du paiement local
+        |--------------------------------------------------------------------------
+        */
 
         $paiement = Paiement::create([
             'user_id' => $user->id,
@@ -64,6 +81,13 @@ class AbonnementController extends Controller
         ]);
 
         try {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Création du lien Papi
+            |--------------------------------------------------------------------------
+            */
+
             $lien = app(PapiService::class)->creerLienPaiement([
                 'montant' => $montant,
 
@@ -95,6 +119,9 @@ class AbonnementController extends Controller
 
                 'validDuration' => 24,
 
+                /*
+                 * Production.
+                 */
                 'isTestMode' => false,
             ]);
 
@@ -120,33 +147,62 @@ class AbonnementController extends Controller
                 );
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Redirection vers Papi
+        |--------------------------------------------------------------------------
+        */
+
         return redirect()->away($lien);
     }
 
     /**
      * Callback envoyé par Papi.
+     *
+     * IMPORTANT :
+     *
+     * Un même lien Papi peut recevoir plusieurs tentatives :
+     *
+     * FAILED
+     * FAILED
+     * FAILED
+     * SUCCESS
+     *
+     * Un FAILED ne doit donc PAS empêcher une future notification SUCCESS.
      */
     public function callback(Request $request, string $reference)
     {
         /*
         |--------------------------------------------------------------------------
-        | 1. Vérification de la signature Papi
+        | 1. Vérification du secret webhook
         |--------------------------------------------------------------------------
         */
 
         $secret = config('services.papi.webhook_secret');
 
         if (empty($secret)) {
-            Log::error('Papi callback : secret webhook non configuré.');
+
+            Log::error(
+                'Papi callback : secret webhook non configuré.'
+            );
 
             return response()->json([
                 'message' => 'Webhook non configuré.',
             ], 500);
         }
 
-        $signatureHeader = $request->header('X-Papi-Signature');
+        /*
+        |--------------------------------------------------------------------------
+        | 2. Récupération de la signature
+        |--------------------------------------------------------------------------
+        */
+
+        $signatureHeader = $request->header(
+            'X-Papi-Signature'
+        );
 
         if (empty($signatureHeader)) {
+
             Log::warning(
                 'Papi callback sans signature',
                 [
@@ -162,7 +218,11 @@ class AbonnementController extends Controller
         $timestamp = null;
         $signature = null;
 
-        foreach (explode(',', $signatureHeader) as $part) {
+        foreach (
+            explode(',', $signatureHeader)
+            as $part
+        ) {
+
             $part = trim($part);
 
             if (str_starts_with($part, 't=')) {
@@ -174,45 +234,17 @@ class AbonnementController extends Controller
             }
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | 3. Vérification du format de signature
+        |--------------------------------------------------------------------------
+        */
+
         if (
             ! $timestamp ||
             ! $signature ||
             ! ctype_digit($timestamp)
         ) {
-            return response()->json([
-                'message' => 'Signature invalide.',
-            ], 401);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 2. Protection contre le rejeu
-        |--------------------------------------------------------------------------
-        */
-
-        if (abs(time() - (int) $timestamp) > 300) {
-            return response()->json([
-                'message' => 'Signature expirée.',
-            ], 401);
-        }
-
-        /*
-        |--------------------------------------------------------------------------
-        | 3. Calcul de la signature
-        |--------------------------------------------------------------------------
-        */
-
-        $rawBody = $request->getContent();
-
-        $signedPayload = $timestamp . '.' . $rawBody;
-
-        $expectedSignature = hash_hmac(
-            'sha256',
-            $signedPayload,
-            $secret
-        );
-
-        if (! hash_equals($expectedSignature, $signature)) {
 
             Log::warning(
                 'Papi callback : signature invalide',
@@ -228,7 +260,67 @@ class AbonnementController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 4. Récupération du paiement
+        | 4. Protection contre le rejeu
+        |--------------------------------------------------------------------------
+        */
+
+        if (
+            abs(
+                time() - (int) $timestamp
+            ) > 300
+        ) {
+
+            Log::warning(
+                'Papi callback : signature expirée',
+                [
+                    'reference' => $reference,
+                ]
+            );
+
+            return response()->json([
+                'message' => 'Signature expirée.',
+            ], 401);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 5. Vérification HMAC
+        |--------------------------------------------------------------------------
+        */
+
+        $rawBody = $request->getContent();
+
+        $signedPayload =
+            $timestamp . '.' . $rawBody;
+
+        $expectedSignature = hash_hmac(
+            'sha256',
+            $signedPayload,
+            $secret
+        );
+
+        if (
+            ! hash_equals(
+                $expectedSignature,
+                $signature
+            )
+        ) {
+
+            Log::warning(
+                'Papi callback : signature invalide',
+                [
+                    'reference' => $reference,
+                ]
+            );
+
+            return response()->json([
+                'message' => 'Signature invalide.',
+            ], 401);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 6. Recherche du paiement
         |--------------------------------------------------------------------------
         */
 
@@ -238,6 +330,7 @@ class AbonnementController extends Controller
         )->first();
 
         if (! $paiement) {
+
             Log::warning(
                 'Papi callback : paiement introuvable',
                 [
@@ -252,33 +345,28 @@ class AbonnementController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 5. Éviter de traiter deux fois le même paiement
+        | 7. Vérification de la référence marchand
         |--------------------------------------------------------------------------
         */
 
-        if ($paiement->statut !== 'en_attente') {
-            return response()->json([
-                'message' => 'Déjà traité.',
-            ], 200);
-        }
+        $merchantReference =
+            $request->input(
+                'merchantPaymentReference'
+            );
 
-        /*
-        |--------------------------------------------------------------------------
-        | 6. Vérification de la référence
-        |--------------------------------------------------------------------------
-        */
-
-        $merchantReference = $request->input(
-            'merchantPaymentReference'
-        );
-
-        if ($merchantReference !== $paiement->reference) {
+        if (
+            $merchantReference !==
+            $paiement->reference
+        ) {
 
             Log::warning(
                 'Papi callback : mauvaise référence',
                 [
-                    'reference_attendue' => $paiement->reference,
-                    'reference_recue' => $merchantReference,
+                    'reference_attendue' =>
+                        $paiement->reference,
+
+                    'reference_recue' =>
+                        $merchantReference,
                 ]
             );
 
@@ -289,7 +377,7 @@ class AbonnementController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 7. Vérification du montant
+        | 8. Vérification du montant
         |--------------------------------------------------------------------------
         */
 
@@ -297,21 +385,35 @@ class AbonnementController extends Controller
             (float) $request->input('amount')
         );
 
-        if ($montantRecu !== (int) $paiement->montant) {
+        if (
+            $montantRecu !==
+            (int) $paiement->montant
+        ) {
 
             Log::warning(
                 'Papi callback : montant incorrect',
                 [
-                    'reference' => $paiement->reference,
-                    'montant_attendu' => $paiement->montant,
-                    'montant_recu' => $montantRecu,
+                    'reference' =>
+                        $paiement->reference,
+
+                    'montant_attendu' =>
+                        $paiement->montant,
+
+                    'montant_recu' =>
+                        $montantRecu,
                 ]
             );
 
-            $paiement->update([
-                'statut' => 'echoue',
-                'meta' => $request->all(),
-            ]);
+            /*
+             * On ne transforme pas ici un paiement déjà
+             * confirmé en échec.
+             */
+            if ($paiement->statut !== 'paye') {
+
+                $paiement->statut = 'echoue';
+                $paiement->meta = $request->all();
+                $paiement->save();
+            }
 
             return response()->json([
                 'message' => 'Montant incorrect.',
@@ -320,80 +422,244 @@ class AbonnementController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | 8. Vérification du statut Papi
+        | 9. Récupération du statut Papi
         |--------------------------------------------------------------------------
         */
 
         $paymentStatus = strtoupper(
-            (string) $request->input('paymentStatus')
+            (string) $request->input(
+                'paymentStatus'
+            )
         );
 
         /*
         |--------------------------------------------------------------------------
-        | 9. Enregistrer les informations Papi
+        | 10. Enregistrement de CHAQUE notification
         |--------------------------------------------------------------------------
         */
 
         $paiement->papi_transaction_id =
-            $request->input('papiPaymentReference')
-            ?? $request->input('paymentReference');
+            $request->input(
+                'papiPaymentReference'
+            )
+            ?? $request->input(
+                'paymentReference'
+            )
+            ?? $paiement->papi_transaction_id;
 
         $paiement->papi_payment_method =
-            $request->input('paymentMethod');
+            $request->input(
+                'paymentMethod'
+            )
+            ?? $paiement->papi_payment_method;
 
-        $paiement->meta = $request->all();
+        $paiement->meta =
+            $request->all();
 
         /*
         |--------------------------------------------------------------------------
-        | 10. Paiement réussi
+        | 11. Paiement SUCCESS
         |--------------------------------------------------------------------------
         */
 
         if ($paymentStatus === 'SUCCESS') {
 
+            /*
+            |--------------------------------------------------------------------------
+            | SUCCESS déjà traité
+            |--------------------------------------------------------------------------
+            |
+            | On ne crédite jamais deux fois.
+            |
+            */
+
+            if ($paiement->statut === 'paye') {
+
+                $paiement->save();
+
+                Log::info(
+                    'Papi — SUCCESS déjà traité',
+                    [
+                        'reference' =>
+                            $paiement->reference,
+
+                        'transaction' =>
+                            $paiement->papi_transaction_id,
+                    ]
+                );
+
+                return response()->json([
+                    'message' =>
+                        'SUCCESS déjà traité.',
+                ], 200);
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Première confirmation SUCCESS
+            |--------------------------------------------------------------------------
+            */
+
             $paiement->statut = 'paye';
             $paiement->paye_le = now();
+
             $paiement->save();
 
-            $this->activerAvantage($paiement);
+            /*
+            |--------------------------------------------------------------------------
+            | Activation de l'avantage
+            |--------------------------------------------------------------------------
+            */
+
+            $this->activerAvantage(
+                $paiement
+            );
 
             Log::info(
                 'Papi — paiement confirmé',
                 [
-                    'reference' => $paiement->reference,
-                    'montant' => $paiement->montant,
-                    'type' => $paiement->type,
+                    'reference' =>
+                        $paiement->reference,
+
+                    'montant' =>
+                        $paiement->montant,
+
+                    'type' =>
+                        $paiement->type,
+
+                    'paymentMethod' =>
+                        $paiement->papi_payment_method,
+
+                    'transaction' =>
+                        $paiement->papi_transaction_id,
                 ]
             );
 
-        } else {
+            return response()->json([
+                'message' =>
+                    'Paiement confirmé.',
+            ], 200);
+        }
 
-            $paiement->statut = 'echoue';
+        /*
+        |--------------------------------------------------------------------------
+        | 12. Paiement FAILED
+        |--------------------------------------------------------------------------
+        |
+        | IMPORTANT :
+        |
+        | FAILED = cette tentative a échoué.
+        |
+        | Le client peut immédiatement refaire une tentative
+        | depuis la même page Papi.
+        |
+        */
+
+        if ($paymentStatus === 'FAILED') {
+
+            /*
+            |--------------------------------------------------------------------------
+            | Un paiement déjà réussi reste réussi.
+            |--------------------------------------------------------------------------
+            */
+
+            if ($paiement->statut !== 'paye') {
+
+                $paiement->statut = 'echoue';
+            }
+
             $paiement->save();
 
             Log::warning(
-                'Papi — paiement non réussi',
+                'Papi — tentative de paiement échouée',
                 [
-                    'reference' => $paiement->reference,
-                    'paymentStatus' => $paymentStatus,
+                    'reference' =>
+                        $paiement->reference,
+
+                    'paymentStatus' =>
+                        $paymentStatus,
+
+                    'message' =>
+                        $request->input('message'),
+
+                    'paymentMethod' =>
+                        $request->input('paymentMethod'),
+
+                    'transaction' =>
+                        $paiement->papi_transaction_id,
                 ]
             );
+
+            return response()->json([
+                'message' =>
+                    'Tentative échouée enregistrée.',
+            ], 200);
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | 13. Autres statuts
+        |--------------------------------------------------------------------------
+        |
+        | Exemple :
+        |
+        | PENDING
+        | PROCESSING
+        |
+        | On conserve la notification sans considérer
+        | le paiement comme terminé.
+        |
+        */
+
+        $paiement->save();
+
+        Log::info(
+            'Papi — statut intermédiaire',
+            [
+                'reference' =>
+                    $paiement->reference,
+
+                'paymentStatus' =>
+                    $paymentStatus,
+
+                'message' =>
+                    $request->input('message'),
+
+                'paymentMethod' =>
+                    $request->input('paymentMethod'),
+            ]
+        );
+
         return response()->json([
-            'message' => 'OK',
+            'message' =>
+                'Notification reçue.',
         ], 200);
     }
 
-    private function activerAvantage(Paiement $paiement): void
-    {
+    /**
+     * Active l'abonnement ou ajoute le pack de produits.
+     */
+    private function activerAvantage(
+        Paiement $paiement
+    ): void {
+
         $user = $paiement->user;
 
-        if ($paiement->type === 'abonnement') {
+        /*
+        |--------------------------------------------------------------------------
+        | Abonnement
+        |--------------------------------------------------------------------------
+        */
 
-            $depart = $user->abonnementActif()
-                ? $user->abonnement_expire_le
-                : now();
+        if (
+            $paiement->type ===
+            'abonnement'
+        ) {
+
+            $depart =
+                $user->abonnementActif()
+                    ? $user->abonnement_expire_le
+                    : now();
 
             $user->status = 'active';
 
@@ -401,41 +667,74 @@ class AbonnementController extends Controller
                 $depart->copy()->addMonth();
 
             $user->save();
+        }
 
-        } elseif ($paiement->type === 'pack_produits') {
+        /*
+        |--------------------------------------------------------------------------
+        | Pack produits
+        |--------------------------------------------------------------------------
+        */
+
+        elseif (
+            $paiement->type ===
+            'pack_produits'
+        ) {
 
             $user->limite_produits_bonus += 10;
 
             $user->save();
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Notification utilisateur
+        |--------------------------------------------------------------------------
+        */
+
         $user->notify(
-            new AbonnementActiveNotification($paiement)
+            new AbonnementActiveNotification(
+                $paiement
+            )
         );
     }
 
-    public function succes(string $reference): View
-    {
+    /**
+     * Page après retour Papi : succès.
+     */
+    public function succes(
+        string $reference
+    ): View {
+
         return view(
             'abonnement-resultat',
             [
-                'paiement' => Paiement::where(
-                    'reference',
-                    $reference
-                )->firstOrFail(),
+                'paiement' =>
+                    Paiement::where(
+                        'reference',
+                        $reference
+                    )->firstOrFail(),
             ]
         );
     }
 
-    public function echec(string $reference): View
-    {
+    /**
+     * Page après retour Papi : échec.
+     *
+     * Cette page peut également afficher l'état
+     * réel du paiement après une nouvelle tentative.
+     */
+    public function echec(
+        string $reference
+    ): View {
+
         return view(
             'abonnement-resultat',
             [
-                'paiement' => Paiement::where(
-                    'reference',
-                    $reference
-                )->firstOrFail(),
+                'paiement' =>
+                    Paiement::where(
+                        'reference',
+                        $reference
+                    )->firstOrFail(),
             ]
         );
     }
