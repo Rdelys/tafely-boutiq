@@ -10,19 +10,20 @@
             <h1 class="font-display text-2xl md:text-3xl font-bold text-primary-900">Produits</h1>
             <p class="font-body text-gray-500 mt-1">{{ auth()->user()->limiteProduits() }} utilisés sur votre plan actuel.</p>
         </div>
-        @if (auth()->user()->{{ auth()->user()->limiteProduits() }})
-            <span title="Limite de 10 produits atteinte pour votre plan actuel"
-                  class="inline-flex items-center gap-2 bg-gray-100 text-gray-400 font-body font-bold text-sm px-5 py-2.5 rounded-full cursor-not-allowed select-none">
-                <span class="material-symbols-outlined text-[20px]">block</span>
-                Limite atteinte (10/10)
-            </span>
-        @else
-            <a href="{{ route('produits.create') }}"
-               class="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm px-5 py-2.5 rounded-full shadow-sm transition-colors">
-                <span class="material-symbols-outlined text-[20px]">add</span>
-                Ajouter un produit
-            </a>
-        @endif
+        @if (auth()->user()->produits()->count() >= auth()->user()->limiteProduits())
+    <span title="Limite de produits atteinte pour votre plan actuel"
+          class="inline-flex items-center gap-2 bg-gray-100 text-gray-400 font-body font-bold text-sm px-5 py-2.5 rounded-full cursor-not-allowed select-none">
+        <span class="material-symbols-outlined text-[20px]">block</span>
+        Limite atteinte
+        ({{ auth()->user()->produits()->count() }}/{{ auth()->user()->limiteProduits() }})
+    </span>
+@else
+    <a href="{{ route('produits.create') }}"
+       class="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm px-5 py-2.5 rounded-full shadow-sm transition-colors">
+        <span class="material-symbols-outlined text-[20px]">add</span>
+        Ajouter un produit
+    </a>
+@endif
     </div>
 
     {{-- erreur (ex: limite atteinte) --}}
