@@ -8,9 +8,9 @@
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
             <h1 class="font-display text-2xl md:text-3xl font-bold text-primary-900">Produits</h1>
-            <p class="font-body text-gray-500 mt-1">{{ $produits->count() }} / 10 produits utilisés sur votre plan actuel.</p>
+            <p class="font-body text-gray-500 mt-1">{{ auth()->user()->limiteProduits() }} utilisés sur votre plan actuel.</p>
         </div>
-        @if (auth()->user()->nombre_produits >= 10)
+        @if (auth()->user()->{{ auth()->user()->limiteProduits() }})
             <span title="Limite de 10 produits atteinte pour votre plan actuel"
                   class="inline-flex items-center gap-2 bg-gray-100 text-gray-400 font-body font-bold text-sm px-5 py-2.5 rounded-full cursor-not-allowed select-none">
                 <span class="material-symbols-outlined text-[20px]">block</span>

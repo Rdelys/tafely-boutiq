@@ -11,35 +11,23 @@ class User extends Authenticatable
     use Notifiable;use HasFactory;
 
     protected $fillable = [
-        'email',
-        'pseudo',
-        'nom',
-        'prenom',
-        'nom_boutique',
-        'logo',
-        'adresse',
-        'nif',
-        'stat',
-        'status',
-        'telephone',
-        'email_notification',
-        'email_notification_secondaire',
-        'boutique_theme',
-        'boutique_couleur',
-        'boutique_couleur_perso',
-        'boutique_description',
-    ];
+    'email', 'pseudo', 'nom', 'prenom', 'nom_boutique', 'logo', 'adresse',
+    'nif', 'stat', 'status', 'abonnement_expire_le', 'limite_produits_bonus',
+    'telephone', 'email_notification', 'email_notification_secondaire',
+    'boutique_theme', 'boutique_couleur', 'boutique_couleur_perso', 'boutique_description',
+];
 
     protected $hidden = [
         'remember_token',
     ];
 
     protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-        ];
-    }
+{
+    return [
+        'email_verified_at' => 'datetime',
+        'abonnement_expire_le' => 'date',
+    ];
+}
 
     protected static function booted(): void
     {
@@ -73,14 +61,14 @@ class User extends Authenticatable
     }
 
     // "Test" ou "Actif payant" affiché dans le layout connecté
-    public function statusLabel(): string
-    {
-        return match ($this->status) {
-            'active' => 'Actif payant',
-            'test' => 'Test',
-            default => 'Gratuit',
-        };
+public function statusLabel(): string
+{
+    if ($this->abonnementActif()) {
+        return 'Actif payant';
     }
+
+    return $this->essaiExpire() ? 'Essai expiré' : 'Gratuit (essai)';
+}
 
     public function hasPseudo(): bool
     {
@@ -122,4 +110,44 @@ class User extends Authenticatable
         return \App\Http\Controllers\BoutiqueController::COULEURS[$this->boutique_couleur]
             ?? \App\Http\Controllers\BoutiqueController::COULEURS['bleu'];
     }
+
+    // Essai gratuit de 30 jours à partir de la création du compte.
+public function finEssaiLe(): \Carbon\Carbon
+{
+    return $this->created_at->copy()->addDays(30);
+}
+
+public function essaiExpire(): bool
+{
+    return ! $this->abonnementActif() && now()->greaterThan($this->finEssaiLe());
+}
+
+public function joursRestantsEssai(): int
+{
+    if ($this->abonnementActif()) {
+        return 0;
+    }
+
+    return max(0, (int) now()->diffInDays($this->finEssaiLe(), false));
+}
+
+// Abonnement payant actif (indépendamment de la valeur brute de "status",
+// au cas où la date d'expiration serait dépassée sans tâche planifiée).
+public function abonnementActif(): bool
+{
+    if ($this->status !== 'active') {
+        return false;
+    }
+
+    return is_null($this->abonnement_expire_le) || $this->abonnement_expire_le->isFuture();
+}
+
+public function limiteProduits(): int
+{
+    $base = $this->abonnementActif() ? 30 : 10;
+
+    return $base + (int) $this->limite_produits_bonus;
+}
+
+
 }

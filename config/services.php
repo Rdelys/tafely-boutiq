@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'papi' => [
+        'base_url' => env('PAPI_BASE_URL', 'https://app.papi.mg'),
+        'api_key' => env('PAPI_API_KEY'),
+        'webhook_secret' => env('PAPI_WEBHOOK_SECRET'),
+    ],
+
 ];

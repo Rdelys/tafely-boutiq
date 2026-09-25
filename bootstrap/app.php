@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Redirige les visiteurs non connectés vers la page d'accueil
         // (et non vers une route "login" qui n'existe pas ici, puisque
         // la connexion se fait uniquement via la modal de la homepage).
+            $middleware->validateCsrfTokens(except: [
+        'abonnement/paiement/*/callback',
+    ]);
+    $middleware->alias(['abonnement.actif' => \App\Http\Middleware\VerifierAbonnementActif::class]);
         $middleware->redirectGuestsTo(fn () => route('home'));
     })
     ->withExceptions(function (Exceptions $exceptions) {
