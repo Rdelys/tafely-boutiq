@@ -18,6 +18,8 @@ class User extends Authenticatable
         'nom_boutique',
         'logo',
         'adresse',
+        'nif',
+        'stat',
         'status',
         'telephone',
         'email_notification',

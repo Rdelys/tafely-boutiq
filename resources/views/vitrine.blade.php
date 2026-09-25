@@ -184,6 +184,18 @@
                             {{ $marchand->adresse }}
                         </span>
                     @endif
+                                        @if ($marchand->nif)
+                        <span class="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                            <span class="material-symbols-outlined text-[15px]">badge</span>
+                            NIF : {{ $marchand->nif }}
+                        </span>
+                    @endif
+                    @if ($marchand->stat)
+                        <span class="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
+                            <span class="material-symbols-outlined text-[15px]">fact_check</span>
+                            STAT : {{ $marchand->stat }}
+                        </span>
+                    @endif
                     <span class="inline-flex items-center gap-1.5 bg-white border border-gray-200 text-gray-600 text-xs font-semibold px-3 py-1.5 rounded-full shadow-sm">
                         <span class="material-symbols-outlined text-[15px]">inventory_2</span>
                         {{ $produits->count() }} produit{{ $produits->count() > 1 ? 's' : '' }}

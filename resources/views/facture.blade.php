@@ -63,6 +63,7 @@
                     @endif
                 </div>
                 <div>
+                                    <div>
                     <p class="font-display font-bold text-lg text-primary-900">{{ $marchand->nom_boutique ?: 'Ma boutique' }}</p>
                     @if ($marchand->adresse)
                         <p class="font-body text-xs text-gray-500">{{ $marchand->adresse }}</p>
@@ -70,7 +71,14 @@
                     @if ($marchand->telephone)
                         <p class="font-body text-xs text-gray-500">{{ $marchand->telephone }}</p>
                     @endif
+                    @if ($marchand->nif)
+                        <p class="font-body text-xs text-gray-500">NIF : {{ $marchand->nif }}</p>
+                    @endif
+                    @if ($marchand->stat)
+                        <p class="font-body text-xs text-gray-500">STAT : {{ $marchand->stat }}</p>
+                    @endif
                     <p class="font-body text-xs text-gray-500">{{ $marchand->email_notification ?: $marchand->email }}</p>
+                </div>
                 </div>
             </div>
             <div class="text-right">
