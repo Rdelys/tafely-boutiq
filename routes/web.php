@@ -213,3 +213,7 @@ Route::post(
     '/abonnement/paiement/{reference}/callback',
     [AbonnementController::class, 'callback']
 )->name('abonnement.paiement.callback');
+
+Route::view('/aide', 'aide')->name('aide');
+Route::view('/confidentialite', 'confidentialite')->name('confidentialite');
+Route::view('/contact', 'contact')->name('contact');
