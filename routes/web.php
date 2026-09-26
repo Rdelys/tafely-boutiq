@@ -10,6 +10,9 @@ use App\Http\Controllers\ParametresController;
 use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\VenteBoutiqueController;
 use App\Http\Controllers\VitrineController;
+use App\Http\Controllers\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+
 use Illuminate\Support\Facades\Route;
 
 
@@ -217,3 +220,23 @@ Route::post(
 Route::view('/aide', 'aide')->name('aide');
 Route::view('/confidentialite', 'confidentialite')->name('confidentialite');
 Route::view('/contact', 'contact')->name('contact');
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('admin')->name('admin.')->group(function () {
+
+    Route::middleware('guest:admin')->group(function () {
+        Route::view('/connexion', 'admin.login')->name('login');
+        Route::post('/connexion/otp', [AdminAuthController::class, 'sendOtp'])->name('otp.send');
+        Route::post('/connexion/verifier', [AdminAuthController::class, 'verifyOtp'])->name('otp.verify');
+    });
+
+    Route::middleware('auth:admin')->group(function () {
+        Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::post('/deconnexion', [AdminAuthController::class, 'logout'])->name('logout');
+    });
+});
