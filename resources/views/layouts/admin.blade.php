@@ -39,8 +39,8 @@
 
     @php
         $adminLiens = [
-            ['route' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'Tableau de bord', 'actif' => true],
-            ['icon' => 'storefront', 'label' => 'Marchands', 'actif' => false],
+            ['route' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'TDB', 'actif' => true],
+            ['route' => 'admin.marchands.index', 'icon' => 'storefront', 'label' => 'Marchands', 'actif' => true],
             ['icon' => 'payments', 'label' => 'Abonnements', 'actif' => false],
             ['icon' => 'inventory_2', 'label' => 'Produits', 'actif' => false],
             ['icon' => 'receipt_long', 'label' => 'Commandes', 'actif' => false],
@@ -123,8 +123,8 @@
                         <a href="{{ route($lien['route']) }}" @click="menuOuvert = false"
                            @class([
                                'px-4 py-3 rounded-xl text-sm font-body font-semibold flex items-center gap-3 transition-colors',
-                               'bg-white/15 text-white' => request()->routeIs($lien['route']),
-                               'text-primary-100 hover:bg-white/10' => ! request()->routeIs($lien['route']),
+                               'bg-white/15 text-white' => request()->routeIs($lien['route'].'*'),
+                               'text-primary-100 hover:bg-white/10' => ! request()->routeIs($lien['route'].'*'),
                            ])>
                             <span class="material-symbols-outlined text-[20px]">{{ $lien['icon'] }}</span>
                             {{ $lien['label'] }}

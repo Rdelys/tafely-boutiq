@@ -238,5 +238,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('auth:admin')->group(function () {
         Route::get('/', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::post('/deconnexion', [AdminAuthController::class, 'logout'])->name('logout');
+
+        Route::prefix('marchands')->name('marchands.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\MarchandController::class, 'index'])->name('index');
+            Route::get('/{utilisateur}', [\App\Http\Controllers\Admin\MarchandController::class, 'show'])->name('show');
+        });
     });
+
+    
 });
