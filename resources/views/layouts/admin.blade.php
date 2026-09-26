@@ -41,7 +41,7 @@
         $adminLiens = [
             ['route' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'TDB', 'actif' => true],
             ['route' => 'admin.marchands.index', 'icon' => 'storefront', 'label' => 'Marchands', 'actif' => true],
-            ['icon' => 'payments', 'label' => 'Abonnements', 'actif' => false],
+            ['route' => 'admin.paiements.index', 'icon' => 'payments', 'label' => 'Abonnements', 'actif' => true],
             ['icon' => 'inventory_2', 'label' => 'Produits', 'actif' => false],
             ['icon' => 'receipt_long', 'label' => 'Commandes', 'actif' => false],
             ['icon' => 'support_agent', 'label' => 'Support', 'actif' => false],

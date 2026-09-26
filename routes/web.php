@@ -249,6 +249,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/{utilisateur}/prolonger-abonnement', [\App\Http\Controllers\Admin\MarchandActionController::class, 'prolongerAbonnement'])->name('prolonger-abonnement');
             Route::put('/{utilisateur}/limite-produits', [\App\Http\Controllers\Admin\MarchandActionController::class, 'definirLimiteProduits'])->name('limite-produits');
         });
+
+        Route::prefix('paiements')->name('paiements.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\PaiementController::class, 'index'])->name('index');
+            Route::get('/export', [\App\Http\Controllers\Admin\PaiementController::class, 'exportCsv'])->name('export');
+        });
     });
 
     
