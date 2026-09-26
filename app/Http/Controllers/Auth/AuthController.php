@@ -31,6 +31,12 @@ class AuthController extends Controller
 
         $email = mb_strtolower(trim($request->input('email')));
 
+        \App\Models\OtpRequestLog::create([
+            'email' => $email,
+            'contexte' => 'marchand',
+            'ip' => $request->ip(),
+        ]);
+
         // On invalide tout code précédent encore actif pour cet email.
         Otp::where('email', $email)->delete();
 

@@ -36,9 +36,15 @@ class AuthController extends Controller
 
         $email = mb_strtolower(trim($request->input('email')));
 
+        \App\Models\OtpRequestLog::create([
+            'email' => $email,
+            'contexte' => 'admin',
+            'ip' => $request->ip(),
+        ]);
+
         // Anti-brute-force : 5 demandes / 5 minutes par IP.
         $cle = 'admin-otp:'.$request->ip();
-
+        
         if (RateLimiter::tooManyAttempts($cle, 5)) {
             return response()->json([
                 'message' => 'Trop de tentatives. Réessayez dans quelques minutes.',

@@ -283,6 +283,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\CommunicationController::class, 'create'])->name('create');
             Route::post('/', [\App\Http\Controllers\Admin\CommunicationController::class, 'store'])->name('store');
         });
+
+        Route::prefix('securite')->name('securite.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\SecuriteController::class, 'index'])->name('index');
+        });
     });
 
     
