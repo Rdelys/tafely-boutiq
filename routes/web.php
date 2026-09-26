@@ -259,6 +259,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/{produit}/reactiver', [\App\Http\Controllers\Admin\ProduitActionController::class, 'reactiver'])->name('reactiver');
             Route::delete('/{produit}', [\App\Http\Controllers\Admin\ProduitActionController::class, 'detruire'])->name('detruire');
         });
+
+        Route::prefix('commandes')->name('commandes.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\CommandeController::class, 'index'])->name('index');
+        });
     });
 
     

@@ -43,7 +43,7 @@
             ['route' => 'admin.marchands.index', 'icon' => 'storefront', 'label' => 'Marchands', 'actif' => true],
             ['route' => 'admin.paiements.index', 'icon' => 'payments', 'label' => 'Abonnements', 'actif' => true],
             ['route' => 'admin.produits.index', 'icon' => 'inventory_2', 'label' => 'Produits', 'actif' => true],
-            ['icon' => 'receipt_long', 'label' => 'Commandes', 'actif' => false],
+            ['route' => 'admin.commandes.index', 'icon' => 'receipt_long', 'label' => 'Commandes', 'actif' => true],
             ['icon' => 'support_agent', 'label' => 'Support', 'actif' => false],
             ['icon' => 'settings', 'label' => 'Paramètres', 'actif' => false],
         ];
