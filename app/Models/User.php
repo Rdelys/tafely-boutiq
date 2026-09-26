@@ -191,4 +191,9 @@ public function abonnementActif(): bool
     {
         return $query->abonnementInactif()->where('created_at', '>', now()->subDays(30));
     }
+
+        public function notificationsMarchand(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(MarchandNotification::class);
+    }
 }

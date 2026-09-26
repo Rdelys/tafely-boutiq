@@ -5,6 +5,7 @@
 @php
     $user = auth()->user();
     $commandesAFaire = $user->commandes()->where('statut', 'a_prendre_en_compte')->count();
+    $notificationsNonLues = $user->notificationsMarchand()->whereNull('lu_le')->count();
 @endphp
 
 {{-- ============ TOP NAV ============ --}}
@@ -77,9 +78,11 @@
                ])>
                 <span class="material-symbols-outlined text-[20px]" @if(request()->routeIs($link['route'])) style="font-variation-settings: 'FILL' 1;" @endif>{{ $link['icon'] }}</span>
                 <span class="flex-1">{{ $link['label'] }}</span>
-                @if ($link['route'] === 'commandes' && $commandesAFaire > 0)
+                @if (($link['route'] === 'commandes' && $commandesAFaire > 0) || ($link['route'] === 'notifications' && $notificationsNonLues > 0))
                     <span class="bg-accent-500 text-white text-[11px] font-bold h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center">
-                        {{ $commandesAFaire > 99 ? '99+' : $commandesAFaire }}
+                        {{ $link['route'] === 'commandes'
+                            ? ($commandesAFaire > 99 ? '99+' : $commandesAFaire)
+                            : ($notificationsNonLues > 99 ? '99+' : $notificationsNonLues) }}
                     </span>
                 @endif
             </a>

@@ -122,8 +122,8 @@ Route::middleware(['auth', 'compte.actif'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::view('/notifications', 'notifications')
-        ->name('notifications');
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])
+    ->name('notifications');
 
 
     /*
@@ -241,8 +241,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('marchands')->name('marchands.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\MarchandController::class, 'index'])->name('index');
             Route::get('/{utilisateur}', [\App\Http\Controllers\Admin\MarchandController::class, 'show'])->name('show');
-
-            // Ajout :
             Route::post('/{utilisateur}/suspendre', [\App\Http\Controllers\Admin\MarchandActionController::class, 'suspendre'])->name('suspendre');
             Route::post('/{utilisateur}/reactiver', [\App\Http\Controllers\Admin\MarchandActionController::class, 'reactiver'])->name('reactiver');
             Route::post('/{utilisateur}/prolonger-essai', [\App\Http\Controllers\Admin\MarchandActionController::class, 'prolongerEssai'])->name('prolonger-essai');
@@ -253,6 +251,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('paiements')->name('paiements.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\PaiementController::class, 'index'])->name('index');
             Route::get('/export', [\App\Http\Controllers\Admin\PaiementController::class, 'exportCsv'])->name('export');
+        });
+
+        Route::prefix('produits')->name('produits.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\ProduitController::class, 'index'])->name('index');
+            Route::post('/{produit}/bloquer', [\App\Http\Controllers\Admin\ProduitActionController::class, 'bloquer'])->name('bloquer');
+            Route::post('/{produit}/reactiver', [\App\Http\Controllers\Admin\ProduitActionController::class, 'reactiver'])->name('reactiver');
+            Route::delete('/{produit}', [\App\Http\Controllers\Admin\ProduitActionController::class, 'detruire'])->name('detruire');
         });
     });
 

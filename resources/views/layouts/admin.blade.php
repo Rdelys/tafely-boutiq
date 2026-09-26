@@ -42,7 +42,7 @@
             ['route' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'TDB', 'actif' => true],
             ['route' => 'admin.marchands.index', 'icon' => 'storefront', 'label' => 'Marchands', 'actif' => true],
             ['route' => 'admin.paiements.index', 'icon' => 'payments', 'label' => 'Abonnements', 'actif' => true],
-            ['icon' => 'inventory_2', 'label' => 'Produits', 'actif' => false],
+            ['route' => 'admin.produits.index', 'icon' => 'inventory_2', 'label' => 'Produits', 'actif' => true],
             ['icon' => 'receipt_long', 'label' => 'Commandes', 'actif' => false],
             ['icon' => 'support_agent', 'label' => 'Support', 'actif' => false],
             ['icon' => 'settings', 'label' => 'Paramètres', 'actif' => false],

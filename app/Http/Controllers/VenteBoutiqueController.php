@@ -56,6 +56,7 @@ class VenteBoutiqueController extends Controller
             // Verrou sur les produits pour éviter de vendre deux fois le
             // dernier article (vente en boutique + commande en ligne simultanées).
             $produits = Produit::where('user_id', $user->id)
+                ->visibles()
                 ->whereIn('id', $quantites->keys())
                 ->lockForUpdate()
                 ->get()

@@ -18,8 +18,8 @@ class VitrineController extends Controller
 
         abort_if(! $user, 404);
 
-        $produits = $user->produits()->latest()->get();
-
+        $produits = $user->produits()->visibles()->latest()->get();
+        
         return view('vitrine', [
             'marchand' => $user,
             'produits' => $produits,
