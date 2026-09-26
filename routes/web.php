@@ -57,8 +57,7 @@ Route::post('/logout', [AuthController::class, 'logout'])
 |--------------------------------------------------------------------------
 */
 
-Route::middleware('auth')->group(function () {
-
+Route::middleware(['auth', 'compte.actif'])->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Dashboard
@@ -242,6 +241,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('marchands')->name('marchands.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\MarchandController::class, 'index'])->name('index');
             Route::get('/{utilisateur}', [\App\Http\Controllers\Admin\MarchandController::class, 'show'])->name('show');
+
+            // Ajout :
+            Route::post('/{utilisateur}/suspendre', [\App\Http\Controllers\Admin\MarchandActionController::class, 'suspendre'])->name('suspendre');
+            Route::post('/{utilisateur}/reactiver', [\App\Http\Controllers\Admin\MarchandActionController::class, 'reactiver'])->name('reactiver');
+            Route::post('/{utilisateur}/prolonger-essai', [\App\Http\Controllers\Admin\MarchandActionController::class, 'prolongerEssai'])->name('prolonger-essai');
+            Route::post('/{utilisateur}/prolonger-abonnement', [\App\Http\Controllers\Admin\MarchandActionController::class, 'prolongerAbonnement'])->name('prolonger-abonnement');
+            Route::put('/{utilisateur}/limite-produits', [\App\Http\Controllers\Admin\MarchandActionController::class, 'definirLimiteProduits'])->name('limite-produits');
         });
     });
 

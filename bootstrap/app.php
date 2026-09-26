@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Alias des middlewares personnalisés
         $middleware->alias([
             'abonnement.actif' => \App\Http\Middleware\VerifierAbonnementActif::class,
+            'compte.actif' => \App\Http\Middleware\VerifierCompteActif::class,
         ]);
 
         // Redirection des visiteurs non connectés

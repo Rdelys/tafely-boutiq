@@ -23,4 +23,9 @@ class Admin extends Authenticatable
             'email_verified_at' => 'datetime',
         ];
     }
+
+    public function actions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(AdminAuditLog::class);
+    }
 }

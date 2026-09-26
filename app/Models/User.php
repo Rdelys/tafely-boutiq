@@ -24,12 +24,13 @@ class User extends Authenticatable
     ];
 
     protected function casts(): array
-{
-    return [
-        'email_verified_at' => 'datetime',
-        'abonnement_expire_le' => 'date',
-    ];
-}
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'abonnement_expire_le' => 'date',
+            'essai_jusquau' => 'date',
+        ];
+    }
 
     protected static function booted(): void
     {
@@ -107,10 +108,17 @@ class User extends Authenticatable
             ?? \App\Http\Controllers\BoutiqueController::COULEURS['bleu'];
     }
 
-public function finEssaiLe(): \Carbon\Carbon
-{
-    return $this->created_at->copy()->addDays(30);
-}
+    public function finEssaiLe(): \Carbon\Carbon
+    {
+        $base = $this->created_at->copy()->addDays(30);
+
+        if ($this->essai_jusquau && $this->essai_jusquau->greaterThan($base)) {
+            return $this->essai_jusquau->copy();
+        }
+
+        return $base;
+    }
+
 
 public function essaiExpire(): bool
 {
@@ -135,12 +143,21 @@ public function abonnementActif(): bool
     return is_null($this->abonnement_expire_le) || $this->abonnement_expire_le->isFuture();
 }
 
-public function limiteProduits(): int
-{
-    $base = $this->abonnementActif() ? 30 : 10;
+    public function limiteProduits(): int
+    {
+        if (! is_null($this->limite_produits_personnalisee)) {
+            return (int) $this->limite_produits_personnalisee;
+        }
 
-    return $base + (int) $this->limite_produits_bonus;
-}
+        $base = $this->abonnementActif() ? 30 : 10;
+
+        return $base + (int) $this->limite_produits_bonus;
+    }
+
+    public function estSuspendu(): bool
+    {
+        return (bool) $this->suspendu;
+    }
 
     // ---- Scopes pour le filtrage admin (calculés en SQL, pas en PHP) ----
 

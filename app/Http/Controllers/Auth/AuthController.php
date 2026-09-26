@@ -90,6 +90,10 @@ class AuthController extends Controller
             ['status' => 'free']
         );
 
+        if ($user->estSuspendu()) {
+            return response()->json(['message' => 'Ce compte a été suspendu. Contactez le support.'], 403);
+        }
+
         if (! $user->email_verified_at) {
             $user->forceFill(['email_verified_at' => now()])->save();
         }

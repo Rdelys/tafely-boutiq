@@ -35,6 +35,83 @@
                 <p class="font-body text-xs text-gray-400 mt-2">Limite produits : {{ $marchand->limiteProduits() }} ({{ $marchand->produits_count }} utilisés)</p>
             </div>
 
+            {{-- succès --}}
+            @if (session('status'))
+                <div class="bg-primary-50 border border-primary-100 text-primary-700 rounded-xl px-4 py-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    <span class="font-body text-xs font-semibold">{{ session('status') }}</span>
+                </div>
+            @endif
+
+            {{-- suspension / réactivation --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
+                <h2 class="font-display text-base font-bold text-primary-900 mb-4">Accès au compte</h2>
+
+                @if ($marchand->estSuspendu())
+                    <div class="mb-4 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
+                        <p class="font-body text-xs font-semibold">Compte suspendu depuis le {{ $marchand->suspendu_le?->format('d/m/Y') }}</p>
+                        @if ($marchand->suspendu_raison)
+                            <p class="font-body text-xs mt-1">Raison : {{ $marchand->suspendu_raison }}</p>
+                        @endif
+                    </div>
+                    <form method="POST" action="{{ route('admin.marchands.reactiver', $marchand) }}">
+                        @csrf
+                        <button type="submit" class="w-full bg-primary-800 hover:bg-primary-900 text-white font-body font-bold text-sm py-2.5 rounded-xl transition-colors">
+                            Réactiver le compte
+                        </button>
+                    </form>
+                @else
+                    <form method="POST" action="{{ route('admin.marchands.suspendre', $marchand) }}"
+                          onsubmit="return confirm('Suspendre ce compte ? Le marchand ne pourra plus se connecter.');">
+                        @csrf
+                        <input type="text" name="raison" maxlength="255" placeholder="Raison (facultatif)"
+                               class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-body text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary-600">
+                        <button type="submit" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm py-2.5 rounded-xl transition-colors">
+                            Suspendre le compte
+                        </button>
+                    </form>
+                @endif
+            </div>
+
+            {{-- prolongations --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
+                <h2 class="font-display text-base font-bold text-primary-900 mb-4">Geste commercial</h2>
+
+                <form method="POST" action="{{ route('admin.marchands.prolonger-essai', $marchand) }}" class="flex items-center gap-2 mb-3">
+                    @csrf
+                    <input type="number" name="jours" min="1" max="365" value="7" required
+                           class="w-20 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <button type="submit" class="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-body font-bold text-xs py-2.5 rounded-xl transition-colors">
+                        Prolonger l'essai (jours)
+                    </button>
+                </form>
+
+                <form method="POST" action="{{ route('admin.marchands.prolonger-abonnement', $marchand) }}" class="flex items-center gap-2">
+                    @csrf
+                    <input type="number" name="jours" min="1" max="365" value="30" required
+                           class="w-20 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <button type="submit" class="flex-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-body font-bold text-xs py-2.5 rounded-xl transition-colors">
+                        Prolonger l'abonnement (jours)
+                    </button>
+                </form>
+            </div>
+
+            {{-- limite produits personnalisée --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
+                <h2 class="font-display text-base font-bold text-primary-900 mb-1">Limite de produits</h2>
+                <p class="font-body text-xs text-gray-400 mb-4">Laisser vide pour revenir au calcul automatique par plan ({{ $marchand->abonnementActif() ? 30 : 10 }} + bonus).</p>
+                <form method="POST" action="{{ route('admin.marchands.limite-produits', $marchand) }}" class="flex items-center gap-2">
+                    @csrf
+                    @method('PUT')
+                    <input type="number" name="limite" min="0" max="1000" placeholder="ex : 50"
+                           value="{{ $marchand->limite_produits_personnalisee }}"
+                           class="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600">
+                    <button type="submit" class="bg-primary-800 hover:bg-primary-900 text-white font-body font-bold text-xs px-4 py-2.5 rounded-xl transition-colors whitespace-nowrap">
+                        Appliquer
+                    </button>
+                </form>
+            </div>
+
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
                 <h2 class="font-display text-base font-bold text-primary-900 mb-4">Coordonnées</h2>
                 <dl class="space-y-3 font-body text-sm">
