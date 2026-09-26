@@ -125,6 +125,13 @@ Route::middleware(['auth', 'compte.actif'])->group(function () {
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])
     ->name('notifications');
 
+    Route::prefix('support')->name('support.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\SupportController::class, 'index'])->name('index');
+        Route::get('/nouveau', [\App\Http\Controllers\SupportController::class, 'create'])->name('create');
+        Route::post('/', [\App\Http\Controllers\SupportController::class, 'store'])->name('store');
+        Route::get('/{ticket}', [\App\Http\Controllers\SupportController::class, 'show'])->name('show');
+        Route::post('/{ticket}/repondre', [\App\Http\Controllers\SupportController::class, 'repondre'])->name('repondre');
+    });
 
     /*
     |--------------------------------------------------------------------------
@@ -262,6 +269,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('commandes')->name('commandes.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\CommandeController::class, 'index'])->name('index');
+        });
+
+        Route::prefix('support')->name('support.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\SupportController::class, 'index'])->name('index');
+            Route::get('/{ticket}', [\App\Http\Controllers\Admin\SupportController::class, 'show'])->name('show');
+            Route::post('/{ticket}/repondre', [\App\Http\Controllers\Admin\SupportController::class, 'repondre'])->name('repondre');
+            Route::post('/{ticket}/fermer', [\App\Http\Controllers\Admin\SupportController::class, 'fermer'])->name('fermer');
+            Route::post('/{ticket}/rouvrir', [\App\Http\Controllers\Admin\SupportController::class, 'rouvrir'])->name('rouvrir');
+        });
+
+        Route::prefix('communication')->name('communication.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\CommunicationController::class, 'create'])->name('create');
+            Route::post('/', [\App\Http\Controllers\Admin\CommunicationController::class, 'store'])->name('store');
         });
     });
 

@@ -38,13 +38,14 @@
 <body class="bg-gray-50 text-gray-800 antialiased">
 
     @php
+        $supportEnAttente = \App\Models\SupportTicket::where('nouveau_pour_admin', true)->count();
         $adminLiens = [
             ['route' => 'admin.dashboard', 'icon' => 'dashboard', 'label' => 'TDB', 'actif' => true],
             ['route' => 'admin.marchands.index', 'icon' => 'storefront', 'label' => 'Marchands', 'actif' => true],
             ['route' => 'admin.paiements.index', 'icon' => 'payments', 'label' => 'Abonnements', 'actif' => true],
             ['route' => 'admin.produits.index', 'icon' => 'inventory_2', 'label' => 'Produits', 'actif' => true],
             ['route' => 'admin.commandes.index', 'icon' => 'receipt_long', 'label' => 'Commandes', 'actif' => true],
-            ['icon' => 'support_agent', 'label' => 'Support', 'actif' => false],
+            ['route' => 'admin.support.index', 'icon' => 'support_agent', 'label' => 'Support', 'actif' => true],
             ['icon' => 'settings', 'label' => 'Paramètres', 'actif' => false],
         ];
     @endphp
@@ -67,12 +68,15 @@
                     @if ($lien['actif'])
                         <a href="{{ route($lien['route']) }}"
                            @class([
-                               'px-3.5 py-2 rounded-full text-sm font-body font-semibold flex items-center gap-2 transition-colors',
+                               'relative px-3.5 py-2 rounded-full text-sm font-body font-semibold flex items-center gap-2 transition-colors',
                                'bg-white/15 text-white' => request()->routeIs($lien['route']),
                                'text-primary-100 hover:bg-white/10' => ! request()->routeIs($lien['route']),
                            ])>
                             <span class="material-symbols-outlined text-[18px]">{{ $lien['icon'] }}</span>
                             {{ $lien['label'] }}
+                            @if ($lien['route'] === 'admin.support.index' && $supportEnAttente > 0)
+                                <span class="bg-accent-500 text-white text-[10px] font-bold h-4.5 min-w-[18px] px-1 rounded-full flex items-center justify-center">{{ $supportEnAttente > 99 ? '99+' : $supportEnAttente }}</span>
+                            @endif
                         </a>
                     @else
                         <span title="Bientôt disponible"
@@ -128,6 +132,9 @@
                            ])>
                             <span class="material-symbols-outlined text-[20px]">{{ $lien['icon'] }}</span>
                             {{ $lien['label'] }}
+                            @if ($lien['route'] === 'admin.support.index' && $supportEnAttente > 0)
+                                <span class="ml-auto bg-accent-500 text-white text-[10px] font-bold h-4.5 min-w-[18px] px-1 rounded-full flex items-center justify-center">{{ $supportEnAttente > 99 ? '99+' : $supportEnAttente }}</span>
+                            @endif
                         </a>
                     @else
                         <span class="px-4 py-3 rounded-xl text-sm font-body font-semibold flex items-center gap-3 text-primary-300/50">

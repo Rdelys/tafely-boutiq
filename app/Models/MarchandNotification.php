@@ -38,6 +38,8 @@ class MarchandNotification extends Model
             'produit_bloque' => 'block',
             'produit_supprime' => 'delete',
             'produit_reactive' => 'check_circle',
+            'support_reponse' => 'support_agent',
+            'annonce' => 'campaign',
             default => 'notifications',
         };
     }

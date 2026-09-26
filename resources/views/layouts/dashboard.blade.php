@@ -6,6 +6,7 @@
     $user = auth()->user();
     $commandesAFaire = $user->commandes()->where('statut', 'a_prendre_en_compte')->count();
     $notificationsNonLues = $user->notificationsMarchand()->whereNull('lu_le')->count();
+    $supportNonLus = $user->supportTickets()->where('nouveau_pour_marchand', true)->count();
 @endphp
 
 {{-- ============ TOP NAV ============ --}}
@@ -60,12 +61,13 @@
     </a>
 @endif
 
-    <nav class="flex-1 flex flex-col gap-1 font-body text-sm">
+        <nav class="flex-1 flex flex-col gap-1 font-body text-sm">
         @foreach ([
             ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
             ['route' => 'produits', 'icon' => 'inventory_2', 'label' => 'Produits'],
             ['route' => 'ventes.create', 'icon' => 'point_of_sale', 'label' => 'Vente en boutique'],
             ['route' => 'commandes', 'icon' => 'shopping_cart', 'label' => 'Commandes'],
+            ['route' => 'support.index', 'icon' => 'support_agent', 'label' => 'Support'],
             ['route' => 'boutique', 'icon' => 'storefront', 'label' => 'Ma boutique'],
             ['route' => 'notifications', 'icon' => 'notifications', 'label' => 'Notifications'],
             ['route' => 'abonnement', 'icon' => 'workspace_premium', 'label' => 'Abonnement'],
@@ -78,11 +80,15 @@
                ])>
                 <span class="material-symbols-outlined text-[20px]" @if(request()->routeIs($link['route'])) style="font-variation-settings: 'FILL' 1;" @endif>{{ $link['icon'] }}</span>
                 <span class="flex-1">{{ $link['label'] }}</span>
-                @if (($link['route'] === 'commandes' && $commandesAFaire > 0) || ($link['route'] === 'notifications' && $notificationsNonLues > 0))
+                @if (($link['route'] === 'commandes' && $commandesAFaire > 0) || ($link['route'] === 'notifications' && $notificationsNonLues > 0) || ($link['route'] === 'support.index' && $supportNonLus > 0))
                     <span class="bg-accent-500 text-white text-[11px] font-bold h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center">
-                        {{ $link['route'] === 'commandes'
-                            ? ($commandesAFaire > 99 ? '99+' : $commandesAFaire)
-                            : ($notificationsNonLues > 99 ? '99+' : $notificationsNonLues) }}
+                        @if ($link['route'] === 'commandes')
+                            {{ $commandesAFaire > 99 ? '99+' : $commandesAFaire }}
+                        @elseif ($link['route'] === 'notifications')
+                            {{ $notificationsNonLues > 99 ? '99+' : $notificationsNonLues }}
+                        @else
+                            {{ $supportNonLus > 99 ? '99+' : $supportNonLus }}
+                        @endif
                     </span>
                 @endif
             </a>
