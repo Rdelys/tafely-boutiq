@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Paiement;
 use App\Notifications\AbonnementActiveNotification;
 use App\Services\PapiService;
+use App\Support\Settings;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,9 +15,6 @@ use Illuminate\View\View;
 
 class AbonnementController extends Controller
 {
-    private const PRIX_ABONNEMENT = 20000;
-    private const PRIX_PACK_PRODUITS = 5000;
-
     public function index(): View
     {
         return view('abonnement');
@@ -27,9 +25,15 @@ class AbonnementController extends Controller
      */
     public function souscrire(): RedirectResponse
     {
+        if (Settings::maintenancePaiements()) {
+            return redirect()
+                ->route('abonnement')
+                ->with('erreur', 'Les paiements sont temporairement indisponibles. Réessayez plus tard.');
+        }
+
         return $this->demarrerPaiement(
             'abonnement',
-            self::PRIX_ABONNEMENT,
+            Settings::prixAbonnement(),
             'Abonnement Tafely — 1 mois'
         );
     }
@@ -39,9 +43,15 @@ class AbonnementController extends Controller
      */
     public function acheterPack(): RedirectResponse
     {
+        if (Settings::maintenancePaiements()) {
+            return redirect()
+                ->route('abonnement')
+                ->with('erreur', 'Les paiements sont temporairement indisponibles. Réessayez plus tard.');
+        }
+
         return $this->demarrerPaiement(
             'pack_produits',
-            self::PRIX_PACK_PRODUITS,
+            Settings::prixPackProduits(),
             'Pack +10 produits Tafely'
         );
     }

@@ -10,6 +10,7 @@ class AdminAuditLog extends Model
     protected $fillable = [
         'admin_id',
         'user_id',
+        'produit_id',
         'action',
         'details',
     ];
@@ -31,6 +32,11 @@ class AdminAuditLog extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function produit(): BelongsTo
+    {
+        return $this->belongsTo(Produit::class);
+    }
+
     public function libelle(): string
     {
         return match ($this->action) {
@@ -39,6 +45,9 @@ class AdminAuditLog extends Model
             'prolongation_essai' => 'a prolongé l\'essai',
             'prolongation_abonnement' => 'a prolongé l\'abonnement',
             'limite_produits_personnalisee' => 'a modifié la limite de produits',
+            'produit_bloque' => 'a bloqué un produit',
+            'produit_reactive' => 'a réactivé un produit',
+            'produit_supprime' => 'a supprimé un produit',
             default => $this->action,
         };
     }

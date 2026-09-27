@@ -287,6 +287,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('securite')->name('securite.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\SecuriteController::class, 'index'])->name('index');
         });
+
+        Route::prefix('parametres')->name('parametres.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\ParametresController::class, 'index'])->name('index');
+            Route::put('/', [\App\Http\Controllers\Admin\ParametresController::class, 'update'])->name('update');
+        });
     });
 
     

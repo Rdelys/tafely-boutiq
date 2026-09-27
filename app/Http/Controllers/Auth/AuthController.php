@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Otp;
+use App\Models\OtpRequestLog;
 use App\Models\User;
 use App\Notifications\OtpCodeNotification;
+use App\Support\Settings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -31,11 +33,19 @@ class AuthController extends Controller
 
         $email = mb_strtolower(trim($request->input('email')));
 
-        \App\Models\OtpRequestLog::create([
+        OtpRequestLog::create([
             'email' => $email,
             'contexte' => 'marchand',
             'ip' => $request->ip(),
         ]);
+
+        $isNewAccount = ! User::where('email', $email)->exists();
+
+        if ($isNewAccount && Settings::maintenanceInscriptions()) {
+            return response()->json([
+                'message' => 'Les inscriptions sont temporairement suspendues. Réessayez plus tard.',
+            ], 423);
+        }
 
         // On invalide tout code précédent encore actif pour cet email.
         Otp::where('email', $email)->delete();
@@ -47,8 +57,6 @@ class AuthController extends Controller
             'code' => $code,
             'expires_at' => now()->addMinutes(10),
         ]);
-
-        $isNewAccount = ! User::where('email', $email)->exists();
 
         (new AnonymousNotifiable)
             ->route('mail', $email)

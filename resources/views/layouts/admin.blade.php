@@ -47,7 +47,7 @@
             ['route' => 'admin.commandes.index', 'icon' => 'receipt_long', 'label' => 'Commandes', 'actif' => true],
             ['route' => 'admin.support.index', 'icon' => 'support_agent', 'label' => 'Support', 'actif' => true],
             ['route' => 'admin.securite.index', 'icon' => 'security', 'label' => 'Sécurité', 'actif' => true],
-            ['icon' => 'settings', 'label' => 'Paramètres', 'actif' => false],
+            ['route' => 'admin.parametres.index', 'icon' => 'settings', 'label' => 'Paramètres', 'actif' => true],
         ];
     @endphp
 
