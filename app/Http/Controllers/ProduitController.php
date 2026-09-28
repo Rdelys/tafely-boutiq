@@ -12,7 +12,7 @@ use Illuminate\View\View;
 
 class ProduitController extends Controller
 {
-    private const LIMITE_PRODUITS = 10;
+    //private const LIMITE_PRODUITS = 10;
 
     public function index(): View
     {
@@ -22,22 +22,26 @@ class ProduitController extends Controller
     }
 
     public function create(): View|RedirectResponse
-    {
-        if (Auth::user()->nombre_produits >= self::LIMITE_PRODUITS) {
-            return redirect()->route('produits')
-                ->with('erreur', 'Limite de '.self::LIMITE_PRODUITS.' produits atteinte pour votre plan actuel.');
-        }
+{
+    $limite = Auth::user()->limiteProduits();
 
-        return view('produits.creer');
+    if (Auth::user()->nombre_produits >= $limite) {
+        return redirect()->route('produits')
+            ->with('erreur', 'Limite de '.$limite.' produits atteinte pour votre plan actuel.');
     }
+
+    return view('produits.creer');
+}
+
 
     public function store(Request $request): RedirectResponse
     {
         $user = Auth::user();
+        $limite = $user->limiteProduits();
 
-        if ($user->nombre_produits >= self::LIMITE_PRODUITS) {
+        if ($user->nombre_produits >= $limite) {
             return redirect()->route('produits')
-                ->with('erreur', 'Limite de '.self::LIMITE_PRODUITS.' produits atteinte pour votre plan actuel.');
+                ->with('erreur', 'Limite de '.$limite.' produits atteinte pour votre plan actuel.');
         }
 
         $validated = $this->validated($request);

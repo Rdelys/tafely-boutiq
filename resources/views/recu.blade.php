@@ -79,12 +79,18 @@
         @else
             <div class="logo-fallback">{{ mb_strtoupper(mb_substr($marchand->nom_boutique ?: 'B', 0, 1)) }}</div>
         @endif
-        <p class="boutique-nom">{{ $marchand->nom_boutique ?: 'Boutique' }}</p>
+                <p class="boutique-nom">{{ $marchand->nom_boutique ?: 'Boutique' }}</p>
         @if ($marchand->adresse)
             <p class="boutique-sub">{{ $marchand->adresse }}</p>
         @endif
         @if ($marchand->telephone)
             <p class="boutique-sub">{{ $marchand->telephone }}</p>
+        @endif
+        @if ($marchand->nif)
+            <p class="boutique-sub">NIF : {{ $marchand->nif }}</p>
+        @endif
+        @if ($marchand->stat)
+            <p class="boutique-sub">STAT : {{ $marchand->stat }}</p>
         @endif
     </div>
 

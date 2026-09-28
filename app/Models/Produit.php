@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,6 +24,9 @@ class Produit extends Model
         'stock',
         'livraison',
         'prix_livraison',
+        'bloque',
+        'bloque_raison',
+        'bloque_le',
     ];
 
     protected function casts(): array
@@ -32,6 +36,8 @@ class Produit extends Model
             'remise_valeur' => 'integer',
             'prix_livraison' => 'integer',
             'stock' => 'integer',
+            'bloque' => 'boolean',
+            'bloque_le' => 'datetime',
         ];
     }
 
@@ -45,9 +51,19 @@ class Produit extends Model
         return $this->livraison === 'payante';
     }
 
+    public function estBloque(): bool
+    {
+        return (bool) $this->bloque;
+    }
+
+    // Produits visibles publiquement et achetables (ni bloqués).
+    public function scopeVisibles(Builder $query): Builder
+    {
+        return $query->where('bloque', false);
+    }
+
     // ---- Prix et remise ----
 
-    // Prix après application de la remise (= prix de base s'il n'y a pas de remise valide).
     public function prixFinal(): int
     {
         $prix = (int) $this->prix;
@@ -69,13 +85,11 @@ class Produit extends Model
         return $this->prixFinal() < (int) $this->prix;
     }
 
-    // Économie réalisée par le client sur une unité.
     public function economieUnitaire(): int
     {
         return (int) $this->prix - $this->prixFinal();
     }
 
-    // "-20 %" ou "-5 000 Ar" (null si aucune remise).
     public function remiseLabel(): ?string
     {
         if (! $this->aRemise()) {
@@ -87,13 +101,11 @@ class Produit extends Model
             : '-'.number_format((int) $this->remise_valeur, 0, ',', ' ').' Ar';
     }
 
-    // Prix de base (avant remise).
     public function prixFormate(): string
     {
         return number_format($this->prix, 0, ',', ' ').' Ar';
     }
 
-    // Prix réellement payé par le client (après remise).
     public function prixFinalFormate(): string
     {
         return number_format($this->prixFinal(), 0, ',', ' ').' Ar';

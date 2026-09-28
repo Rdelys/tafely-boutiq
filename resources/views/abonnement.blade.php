@@ -13,17 +13,30 @@
     </div>
 
     {{-- bandeau statut actuel --}}
-    @if ($user->status === 'active')
-        <div class="mb-8 flex items-center gap-3 bg-primary-50 border border-primary-100 text-primary-800 rounded-xl px-5 py-4">
-            <span class="material-symbols-outlined text-[22px]">workspace_premium</span>
-            <p class="font-body text-sm font-semibold">Votre boutique est sur le plan <strong>Actif payant</strong>. Merci de votre confiance !</p>
-        </div>
-    @else
-        <div class="mb-8 flex items-center gap-3 bg-gray-100 border border-gray-200 text-gray-700 rounded-xl px-5 py-4">
-            <span class="material-symbols-outlined text-[22px]">info</span>
-            <p class="font-body text-sm font-semibold">Votre boutique est actuellement sur le plan <strong>Gratuit</strong>.</p>
-        </div>
-    @endif
+    @if ($user->abonnementActif())
+    <div class="mb-8 flex items-center gap-3 bg-primary-50 border border-primary-100 text-primary-800 rounded-xl px-5 py-4">
+        <span class="material-symbols-outlined text-[22px]">workspace_premium</span>
+        <p class="font-body text-sm font-semibold">Votre boutique est sur le plan <strong>Actif payant</strong>, valable jusqu'au {{ $user->abonnement_expire_le->format('d/m/Y') }}.</p>
+    </div>
+@elseif ($user->essaiExpire())
+    <div class="mb-8 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-5 py-4">
+        <span class="material-symbols-outlined text-[22px]">error</span>
+        <p class="font-body text-sm font-semibold">Votre période d'essai gratuite est terminée. Souscrivez pour continuer à ajouter des produits.</p>
+    </div>
+@else
+    @php($joursRestants = $user->joursRestantsEssai())
+    <div class="mb-8 flex items-center gap-3 bg-gray-100 border border-gray-200 text-gray-700 rounded-xl px-5 py-4">
+        <span class="material-symbols-outlined text-[22px]">info</span>
+        <p class="font-body text-sm font-semibold">Vous êtes en essai gratuit — il vous reste {{ $joursRestants }} jour{{ $joursRestants > 1 ? 's' : '' }}.</p>
+    </div>
+@endif
+
+@if (session('erreur'))
+    <div class="mb-6 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
+        <span class="material-symbols-outlined text-[20px]">error</span>
+        <span class="font-body text-sm font-semibold">{{ session('erreur') }}</span>
+    </div>
+@endif
 
     {{-- grille des plans --}}
     <div class="grid sm:grid-cols-2 gap-5">
@@ -56,7 +69,7 @@
                 ],
             ],
         ] as $plan)
-            @php($estActuel = $user->status === $plan['status'] || (! $user->status && $plan['status'] === 'free'))
+@php($estActuel = ($user->abonnementActif() ? 'active' : 'free') === $plan['status'])
             <div class="relative bg-white rounded-2xl p-6 border-2 flex flex-col {{ $estActuel ? 'border-primary-600 shadow-md' : 'border-gray-100 shadow-sm' }}">
                 @if ($estActuel)
                     <span class="absolute -top-3 left-6 bg-primary-700 text-white text-xs font-bold uppercase tracking-wide px-3 py-1 rounded-full">
@@ -88,17 +101,23 @@
                 </ul>
 
                 @if ($estActuel)
-                    <button type="button" disabled
-                            class="w-full flex items-center justify-center gap-2 bg-primary-50 text-primary-700 font-body font-bold text-sm py-3 rounded-xl cursor-default">
-                        <span class="material-symbols-outlined text-[18px]">check</span>
-                        Plan actuel
-                    </button>
-                @else
-                    <button type="button" disabled
-                            class="w-full bg-gray-50 text-gray-400 font-body font-bold text-sm py-3 rounded-xl cursor-not-allowed">
-                        Bientôt disponible
-                    </button>
-                @endif
+    <button type="button" disabled class="w-full flex items-center justify-center gap-2 bg-primary-50 text-primary-700 font-body font-bold text-sm py-3 rounded-xl cursor-default">
+        <span class="material-symbols-outlined text-[18px]">check</span>
+        Plan actuel
+    </button>
+@elseif ($plan['status'] === 'active')
+    <form method="POST" action="{{ route('abonnement.souscrire') }}">
+        @csrf
+        <button type="submit" class="w-full flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm py-3 rounded-xl shadow-sm transition-colors">
+            <span class="material-symbols-outlined text-[18px]">payments</span>
+            Souscrire — MVola / Orange Money
+        </button>
+    </form>
+@else
+    <button type="button" disabled class="w-full bg-gray-50 text-gray-400 font-body font-bold text-sm py-3 rounded-xl cursor-not-allowed">
+        Bientôt disponible
+    </button>
+@endif
             </div>
         @endforeach
     </div>
@@ -121,10 +140,12 @@
                 <p class="font-body text-xs text-gray-400">ou 2 € · +10 produits</p>
                 <p class="font-body text-[11px] text-gray-400 italic">Paiement en € : contactez l'administrateur : support@tafely-gr.com</p>
             </div>
-            <button type="button" disabled
-                    class="bg-gray-50 text-gray-400 font-body font-bold text-sm px-5 py-2.5 rounded-xl cursor-not-allowed whitespace-nowrap">
-                Bientôt disponible
-            </button>
+            <form method="POST" action="{{ route('abonnement.pack') }}">
+    @csrf
+    <button type="submit" class="bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm px-5 py-2.5 rounded-xl transition-colors whitespace-nowrap">
+        Acheter — MVola / Orange Money
+    </button>
+</form>
         </div>
     </div>
 

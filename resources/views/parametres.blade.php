@@ -96,6 +96,41 @@
                 @enderror
                 <p class="font-body text-xs text-gray-400 mt-1.5">Affiché sur le reçu que reçoivent vos clients après une commande.</p>
             </div>
+                        <div class="mt-5 grid sm:grid-cols-2 gap-5">
+                <div>
+                    <label for="nif" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">
+                        NIF <span class="font-normal text-gray-400">(facultatif)</span>
+                    </label>
+                    <input
+                        id="nif"
+                        name="nif"
+                        type="text"
+                        value="{{ old('nif', $user->nif) }}"
+                        placeholder="ex : 1234567890"
+                        class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('nif') border-accent-400 @enderror"
+                    >
+                    @error('nif')
+                        <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div>
+                    <label for="stat" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">
+                        STAT <span class="font-normal text-gray-400">(facultatif)</span>
+                    </label>
+                    <input
+                        id="stat"
+                        name="stat"
+                        type="text"
+                        value="{{ old('stat', $user->stat) }}"
+                        placeholder="ex : 12345 11 2020 0 12345"
+                        class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('stat') border-accent-400 @enderror"
+                    >
+                    @error('stat')
+                        <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+            <p class="font-body text-xs text-gray-400 mt-1.5">Affichés sur votre boutique publique si renseignés, pour rassurer vos clients.</p>
         </section>
 
         {{-- Section 2 : notifications de commande --}}

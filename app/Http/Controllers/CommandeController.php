@@ -65,6 +65,7 @@ class CommandeController extends Controller
         $donnees = $validator->validated();
 
         $produits = Produit::where('user_id', $marchand->id)
+            ->visibles()
             ->whereIn('id', collect($donnees['items'])->pluck('produit_id'))
             ->get()
             ->keyBy('id');
