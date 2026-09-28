@@ -17,13 +17,18 @@ class AbonnementController extends Controller
 {
     public function index(): View
     {
-        return view('abonnement');
+        $durees = Settings::detailDurees();
+        $paliers = Settings::paliersReduction();
+        $dureeMax = Settings::dureeMaxMois();
+
+        return view('abonnement', compact('durees', 'paliers', 'dureeMax'));
     }
 
     /**
-     * Souscription à l'abonnement mensuel.
+     * Souscription à l'abonnement, pour n'importe quelle durée en mois
+     * (1 à la limite fixée dans les Paramètres admin).
      */
-    public function souscrire(): RedirectResponse
+    public function souscrire(Request $request): RedirectResponse
     {
         if (Settings::maintenancePaiements()) {
             return redirect()
@@ -31,11 +36,20 @@ class AbonnementController extends Controller
                 ->with('erreur', 'Les paiements sont temporairement indisponibles. Réessayez plus tard.');
         }
 
-        return $this->demarrerPaiement(
-            'abonnement',
-            Settings::prixAbonnement(),
-            'Abonnement Tafely — 1 mois'
-        );
+        $validated = $request->validate([
+            'duree' => ['required', 'integer', 'min:1', 'max:'.Settings::dureeMaxMois()],
+        ], [
+            'duree.required' => 'Merci d\'indiquer une durée d\'abonnement.',
+            'duree.min' => 'La durée minimale est de 1 mois.',
+            'duree.max' => 'La durée maximale est de '.Settings::dureeMaxMois().' mois.',
+        ]);
+
+        $duree = (int) $validated['duree'];
+        $montant = Settings::prixAbonnementPourDuree($duree);
+
+        $description = 'Abonnement Tafely — '.$duree.' mois';
+
+        return $this->demarrerPaiement('abonnement', $montant, $description, $duree);
     }
 
     /**
@@ -62,7 +76,8 @@ class AbonnementController extends Controller
     private function demarrerPaiement(
         string $type,
         int $montant,
-        string $description
+        string $description,
+        ?int $dureeMois = null
     ): RedirectResponse {
         $user = Auth::user();
 
@@ -87,6 +102,7 @@ class AbonnementController extends Controller
             'type' => $type,
             'reference' => $reference,
             'montant' => $montant,
+            'duree_mois' => $dureeMois,
             'statut' => 'en_attente',
         ]);
 
@@ -674,7 +690,7 @@ class AbonnementController extends Controller
             $user->status = 'active';
 
             $user->abonnement_expire_le =
-                $depart->copy()->addMonth();
+                $depart->copy()->addMonths($paiement->duree_mois ?: 1);
 
             $user->save();
         }
