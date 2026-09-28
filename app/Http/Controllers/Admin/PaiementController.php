@@ -149,7 +149,7 @@ class PaiementController extends Controller
                         $paiement->reference,
                         $paiement->user?->nom_boutique ?? '—',
                         $paiement->user?->email ?? '—',
-                        $paiement->type === 'abonnement' ? 'Abonnement' : 'Pack produits',
+                        $paiement->typeLabel(),
                         $paiement->montant,
                         Str::ucfirst(str_replace('_', ' ', $paiement->statut)),
                         $paiement->papi_payment_method ?: '—',

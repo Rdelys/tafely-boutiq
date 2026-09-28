@@ -61,29 +61,21 @@
 
         <div class="flex flex-col gap-6">
 
-            {{-- ============ ONGLET TARIFS ============ --}}
+                        {{-- ============ ONGLET TARIFS ============ --}}
             <section x-show="onglet === 'tarifs'" x-cloak class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100">
                 <div class="flex items-center gap-2.5 mb-5 border-b border-gray-100 pb-4">
                     <span class="material-symbols-outlined text-primary-700 text-[24px]">payments</span>
                     <h2 class="font-display text-lg font-bold text-primary-900">Tarifs</h2>
                 </div>
 
-                <div class="grid sm:grid-cols-3 gap-5">
+                <p class="font-body text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Abonnement</p>
+                <div class="grid sm:grid-cols-2 gap-5 mb-6">
                     <div>
                         <label for="prix_abonnement" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Prix mensuel de base (Ar)</label>
                         <input id="prix_abonnement" name="prix_abonnement" type="number" min="0" step="1" required
                                value="{{ old('prix_abonnement', $parametres['prix_abonnement']) }}"
                                class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('prix_abonnement') border-accent-400 @enderror">
                         @error('prix_abonnement')
-                            <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-                    <div>
-                        <label for="prix_pack_produits" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Prix du pack +10 produits (Ar)</label>
-                        <input id="prix_pack_produits" name="prix_pack_produits" type="number" min="0" step="1" required
-                               value="{{ old('prix_pack_produits', $parametres['prix_pack_produits']) }}"
-                               class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('prix_pack_produits') border-accent-400 @enderror">
-                        @error('prix_pack_produits')
                             <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -97,7 +89,38 @@
                         @enderror
                     </div>
                 </div>
-                <p class="font-body text-xs text-gray-400 mt-4">Ces prix sont utilisés immédiatement pour toute nouvelle souscription — les abonnements déjà en cours ne sont pas affectés.</p>
+
+                <p class="font-body text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Produits supplémentaires</p>
+                <div class="grid sm:grid-cols-3 gap-5">
+                    <div>
+                        <label for="prix_par_produit" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Prix par produit (Ar)</label>
+                        <input id="prix_par_produit" name="prix_par_produit" type="number" min="0" step="1" required
+                               value="{{ old('prix_par_produit', $parametres['prix_par_produit']) }}"
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('prix_par_produit') border-accent-400 @enderror">
+                        @error('prix_par_produit')
+                            <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="pas_produits" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Pas d'achat (produits)</label>
+                        <input id="pas_produits" name="pas_produits" type="number" min="1" max="100" step="1" required
+                               value="{{ old('pas_produits', $parametres['pas_produits']) }}"
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('pas_produits') border-accent-400 @enderror">
+                        @error('pas_produits')
+                            <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <div>
+                        <label for="quantite_max_produits" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">Max. par achat (produits)</label>
+                        <input id="quantite_max_produits" name="quantite_max_produits" type="number" min="1" max="1000" step="1" required
+                               value="{{ old('quantite_max_produits', $parametres['quantite_max_produits']) }}"
+                               class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('quantite_max_produits') border-accent-400 @enderror">
+                        @error('quantite_max_produits')
+                            <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                </div>
+                <p class="font-body text-xs text-gray-400 mt-4">Le marchand achète des emplacements par multiples du pas (5 par défaut : 5, 10, 15...). Mettez 1 pour autoriser n'importe quel nombre. Ces prix s'appliquent immédiatement aux nouveaux achats, sans toucher aux abonnements en cours.</p>
             </section>
 
             {{-- ============ ONGLET RÉDUCTIONS ============ --}}

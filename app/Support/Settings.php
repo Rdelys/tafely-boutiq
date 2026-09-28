@@ -17,14 +17,17 @@ class Settings
 
     private const DEFAUTS = [
         'prix_abonnement' => 20000,
-        'prix_pack_produits' => 5000,
         'maintenance_inscriptions' => false,
         'maintenance_paiements' => false,
         'duree_max_mois' => 36,
 
+        // Emplacements produits supplémentaires, achetés à l'unité ou par pas.
+        'prix_par_produit' => 500,
+        'pas_produits' => 5,
+        'quantite_max_produits' => 100,
+
         // Paliers de réduction (%) appliqués au prix total selon le nombre
-        // de mois souscrits. Chaque palier s'applique à partir du seuil
-        // indiqué et jusqu'au seuil supérieur (exclu).
+        // de mois souscrits.
         'reduction_trimestre' => 5,   // à partir de 3 mois
         'reduction_semestre' => 10,   // à partir de 6 mois
         'reduction_9_mois' => 15,     // à partir de 9 mois
@@ -64,11 +67,6 @@ class Settings
         return self::get('prix_abonnement');
     }
 
-    public static function prixPackProduits(): int
-    {
-        return self::get('prix_pack_produits');
-    }
-
     public static function maintenanceInscriptions(): bool
     {
         return self::get('maintenance_inscriptions');
@@ -84,11 +82,53 @@ class Settings
         return self::get('duree_max_mois');
     }
 
+    // ---- Emplacements produits supplémentaires ----
+
+    public static function prixParProduit(): int
+    {
+        return self::get('prix_par_produit');
+    }
+
+    public static function pasProduits(): int
+    {
+        return max(1, self::get('pas_produits'));
+    }
+
+    public static function quantiteMaxProduits(): int
+    {
+        return max(self::pasProduits(), self::get('quantite_max_produits'));
+    }
+
     /**
-     * Les paliers de réduction, triés du plus élevé (seuil le plus haut)
-     * au plus bas — prêts à parcourir pour trouver le palier applicable,
-     * ou à passer tels quels au JS pour un calcul en direct côté client.
+     * Prix total (Ar) pour un nombre d'emplacements produits.
      */
+    public static function prixPourQuantiteProduits(int $quantite): int
+    {
+        return max(0, $quantite) * self::prixParProduit();
+    }
+
+    /**
+     * Raccourcis proposés (1, 2, 3, 4, 6 et 10 fois le pas), limités au maximum autorisé.
+     */
+    public static function suggestionsQuantiteProduits(): array
+    {
+        $pas = self::pasProduits();
+        $max = self::quantiteMaxProduits();
+
+        return collect([1, 2, 3, 4, 6, 10])
+            ->map(fn ($multiple) => $multiple * $pas)
+            ->filter(fn ($quantite) => $quantite <= $max)
+            ->unique()
+            ->values()
+            ->map(fn ($quantite) => [
+                'quantite' => $quantite,
+                'prix_total' => self::prixPourQuantiteProduits($quantite),
+            ])
+            ->all();
+    }
+
+    // ---- Abonnement : paliers de réduction ----
+
     public static function paliersReduction(): array
     {
         return [
@@ -100,9 +140,6 @@ class Settings
         ];
     }
 
-    /**
-     * Réduction (%) applicable pour un nombre de mois donné.
-     */
     public static function reductionPourDuree(int $mois): int
     {
         foreach (self::paliersReduction() as $palier) {
@@ -114,9 +151,6 @@ class Settings
         return 0;
     }
 
-    /**
-     * Prix total (Ar) pour la durée choisie, réduction déjà appliquée.
-     */
     public static function prixAbonnementPourDuree(int $mois): int
     {
         $mois = max(1, $mois);
@@ -126,11 +160,6 @@ class Settings
         return (int) round($prixMensuel * $mois * (100 - $reduction) / 100);
     }
 
-    /**
-     * Détail calculé pour un ensemble de durées données (par défaut les
-     * suggestions), prêt à afficher — mois, prix total, équivalent
-     * mensuel, réduction appliquée.
-     */
     public static function detailDurees(array $mois = self::DUREES_SUGGEREES): array
     {
         return collect($mois)->map(function ($m) {

@@ -144,7 +144,7 @@
                                 </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap">
-                                        {{ $p->type === 'abonnement' ? 'Abonnement' : 'Pack produits' }}
+                                        {{ $p->typeLabel() }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 font-display font-bold text-sm text-primary-800 whitespace-nowrap">{{ $p->montantFormate() }}</td>

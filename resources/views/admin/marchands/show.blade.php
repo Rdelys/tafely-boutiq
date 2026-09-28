@@ -185,7 +185,7 @@
                     <div class="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                         <div>
                             <p class="font-body font-semibold text-sm text-gray-900">{{ $paiement->reference }}</p>
-                            <p class="font-body text-xs text-gray-400">{{ $paiement->type === 'abonnement' ? 'Abonnement' : 'Pack produits' }} · {{ $paiement->created_at->format('d/m/Y') }}</p>
+                            <p class="font-body text-xs text-gray-400">{{ $paiement->typeLabel() }} · {{ $paiement->created_at->format('d/m/Y') }}</p>
                         </div>
                         <div class="text-right">
                             <p class="font-display font-bold text-sm text-primary-800">{{ $paiement->montantFormate() }}</p>

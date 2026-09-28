@@ -178,30 +178,74 @@
         </div>
     </div>
 
-    {{-- pack complémentaire --}}
-    <div class="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-        <div class="flex items-start gap-4">
+    {{-- produits supplémentaires, par quantité --}}
+    <div class="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-6"
+         x-data="{
+            quantite: {{ $pack['pas'] }},
+            pas: {{ $pack['pas'] }},
+            max: {{ $pack['max'] }},
+            prixParProduit: {{ $pack['prix_par_produit'] }},
+            suggestions: {{ \Illuminate\Support\Js::from($pack['suggestions']) }},
+
+            get prixTotal() { return this.quantite * this.prixParProduit; },
+            formatteMonnaie(n) { return new Intl.NumberFormat('fr-FR').format(n) + ' Ar'; },
+            ajuster(delta) {
+                this.quantite = Math.min(this.max, Math.max(this.pas, (parseInt(this.quantite) || this.pas) + delta * this.pas));
+            },
+            corriger() {
+                let q = parseInt(this.quantite) || this.pas;
+                q = Math.round(q / this.pas) * this.pas;
+                this.quantite = Math.min(this.max, Math.max(this.pas, q));
+            },
+         }">
+        <div class="flex items-start gap-4 mb-5">
             <div class="h-12 w-12 rounded-xl bg-accent-50 flex items-center justify-center shrink-0">
                 <span class="material-symbols-outlined text-accent-600 text-[24px]">add_box</span>
             </div>
             <div>
                 <h3 class="font-display font-bold text-primary-900">Besoin de plus de produits ?</h3>
-                <p class="font-body text-sm text-gray-500 mt-1 max-w-md">Ajoutez un pack de 10 emplacements produits supplémentaires à votre plan actuel, sans changer d'offre.</p>
+                <p class="font-body text-sm text-gray-500 mt-1 max-w-lg">Ajoutez le nombre d'emplacements que vous voulez à votre plan actuel, sans changer d'offre. Vous utilisez actuellement {{ $user->produits()->count() }} sur {{ $user->limiteProduits() }}.</p>
             </div>
         </div>
 
-        <div class="flex items-center gap-4 shrink-0">
-            <div class="text-right">
-                <p class="font-display text-xl font-bold text-primary-900">{{ number_format(\App\Support\Settings::prixPackProduits(), 0, ',', ' ') }} Ar</p>
-                <p class="font-body text-xs text-gray-400">+10 produits</p>
-                <p class="font-body text-[11px] text-gray-400 italic">Paiement en € : contactez l'administrateur : support@tafely-gr.com</p>
-            </div>
-            <form method="POST" action="{{ route('abonnement.pack') }}">
-                @csrf
-                <button type="submit" class="bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm px-5 py-2.5 rounded-xl transition-colors whitespace-nowrap">
-                    Acheter — MVola / Orange Money
+        @error('quantite')
+            <p class="mb-3 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+        @enderror
+
+        {{-- raccourcis --}}
+        <div class="flex flex-wrap gap-1.5 mb-4">
+            <template x-for="s in suggestions" :key="s.quantite">
+                <button type="button" @click="quantite = s.quantite"
+                        class="px-3 py-1.5 rounded-full border-2 text-xs font-body font-bold transition-colors"
+                        :class="quantite === s.quantite ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-500 hover:border-gray-300'">
+                    <span x-text="'+' + s.quantite"></span>
                 </button>
-            </form>
+            </template>
+        </div>
+
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+            <div class="flex items-center gap-3">
+                <button type="button" @click="ajuster(-1)" class="h-9 w-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">−</button>
+                <input type="number" :min="pas" :max="max" :step="pas" x-model.number="quantite" @change="corriger()"
+                       class="w-20 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-body text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-600">
+                <button type="button" @click="ajuster(1)" class="h-9 w-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">+</button>
+                <span class="font-body text-xs text-gray-400">produits (par <span x-text="pas"></span>, max <span x-text="max"></span>)</span>
+            </div>
+
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-4 w-full sm:w-auto">
+                <div class="text-center sm:text-right">
+                    <p class="font-display text-xl font-bold text-primary-900" x-text="formatteMonnaie(prixTotal)"></p>
+                    <p class="font-body text-xs text-gray-400"><span x-text="formatteMonnaie(prixParProduit)"></span> par produit</p>
+                    <p class="font-body text-[11px] text-gray-400 italic">Paiement en € : contactez l'administrateur : support@tafely-gr.com</p>
+                </div>
+                <form method="POST" action="{{ route('abonnement.pack') }}" class="w-full sm:w-auto">
+                    @csrf
+                    <input type="hidden" name="quantite" :value="quantite">
+                    <button type="submit" class="w-full sm:w-auto bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm px-5 py-2.5 rounded-xl transition-colors whitespace-nowrap">
+                        Acheter — MVola / Orange Money
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 

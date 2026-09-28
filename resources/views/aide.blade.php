@@ -98,7 +98,7 @@
                 ],
                 [
                     'q' => 'Combien de produits puis-je ajouter ?',
-                    'r' => 'Jusqu\'à 10 produits pendant les 30 jours d\'essai gratuit, puis jusqu\'à 30 produits avec le plan Actif payant (20 000 Ar/mois). Un pack complémentaire de +10 produits est disponible à 5 000 Ar depuis la page Abonnement de votre tableau de bord.',
+                    'r' => 'Jusqu\'à 10 produits pendant les 30 jours d\'essai gratuit, puis jusqu\'à 30 produits avec le plan Actif payant (20 000 Ar/mois). Vous pouvez aussi acheter des emplacements supplémentaires en choisissant le nombre voulu (par 5, 10, 15...) depuis la page Abonnement de votre tableau de bord.',
                 ],
                 [
                     'q' => 'Comment fonctionne l\'essai gratuit de 30 jours ?',
