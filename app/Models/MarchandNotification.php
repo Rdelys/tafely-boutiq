@@ -41,6 +41,7 @@ class MarchandNotification extends Model
             'support_reponse' => 'support_agent',
             'compte_suspendu' => 'gpp_bad',
             'compte_reactive' => 'verified_user',
+            'boutique_validee' => 'redeem',
             'annonce' => 'campaign',
             default => 'notifications',
         };

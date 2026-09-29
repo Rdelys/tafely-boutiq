@@ -14,36 +14,51 @@
 
     {{-- bandeau statut actuel --}}
     @if ($user->abonnementActif())
-    <div class="mb-8 flex items-center gap-3 bg-primary-50 border border-primary-100 text-primary-800 rounded-xl px-5 py-4">
-        <span class="material-symbols-outlined text-[22px]">workspace_premium</span>
-        <p class="font-body text-sm font-semibold">Votre boutique est sur le plan <strong>Actif payant</strong>, valable jusqu'au {{ $user->abonnement_expire_le->format('d/m/Y') }}.</p>
-    </div>
-@elseif ($user->essaiExpire())
-    <div class="mb-8 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-5 py-4">
-        <span class="material-symbols-outlined text-[22px]">error</span>
-        <p class="font-body text-sm font-semibold">Votre période d'essai gratuite est terminée. Souscrivez pour continuer à ajouter des produits.</p>
-    </div>
-@else
-    @php($joursRestants = $user->joursRestantsEssai())
-    <div class="mb-8 flex items-center gap-3 bg-gray-100 border border-gray-200 text-gray-700 rounded-xl px-5 py-4">
-        <span class="material-symbols-outlined text-[22px]">info</span>
-        <p class="font-body text-sm font-semibold">Vous êtes en essai gratuit — il vous reste {{ $joursRestants }} jour{{ $joursRestants > 1 ? 's' : '' }}.</p>
-    </div>
-@endif
+        <div class="mb-8 flex items-start gap-3 bg-primary-50 border border-primary-100 text-primary-800 rounded-xl px-5 py-4">
+            <span class="material-symbols-outlined text-[22px] mt-0.5">workspace_premium</span>
+            <div>
+                <p class="font-body text-sm font-semibold">
+                    Votre boutique est sur le plan <strong>Actif payant</strong>.
+                    @if ($user->boutiqueValidee())
+                        <span class="inline-flex items-center gap-1 bg-accent-500 text-white text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full align-middle ml-1">Offre de lancement</span>
+                    @endif
+                </p>
+                @if ($user->abonnement_expire_le)
+                    <p class="font-body text-sm mt-1">
+                        Fin de l'abonnement : <strong>{{ $user->abonnement_expire_le->format('d/m/Y') }}</strong>
+                        — il vous reste <strong>{{ $user->dureeRestanteLabel() }}</strong>.
+                    </p>
+                @else
+                    <p class="font-body text-sm mt-1">Votre abonnement n'a pas de date de fin.</p>
+                @endif
+            </div>
+        </div>
+    @elseif ($user->essaiExpire())
+        <div class="mb-8 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-5 py-4">
+            <span class="material-symbols-outlined text-[22px]">error</span>
+            <p class="font-body text-sm font-semibold">Votre période d'essai gratuite est terminée. Souscrivez pour continuer à ajouter des produits.</p>
+        </div>
+    @else
+        @php($joursRestants = $user->joursRestantsEssai())
+        <div class="mb-8 flex items-center gap-3 bg-gray-100 border border-gray-200 text-gray-700 rounded-xl px-5 py-4">
+            <span class="material-symbols-outlined text-[22px]">info</span>
+            <p class="font-body text-sm font-semibold">Vous êtes en essai gratuit — il vous reste {{ $joursRestants }} jour{{ $joursRestants > 1 ? 's' : '' }}.</p>
+        </div>
+    @endif
 
-@if (session('erreur'))
-    <div class="mb-6 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
-        <span class="material-symbols-outlined text-[20px]">error</span>
-        <span class="font-body text-sm font-semibold">{{ session('erreur') }}</span>
-    </div>
-@endif
+    @if (session('erreur'))
+        <div class="mb-6 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-[20px]">error</span>
+            <span class="font-body text-sm font-semibold">{{ session('erreur') }}</span>
+        </div>
+    @endif
 
-@error('duree')
-    <div class="mb-6 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
-        <span class="material-symbols-outlined text-[20px]">error</span>
-        <span class="font-body text-sm font-semibold">{{ $message }}</span>
-    </div>
-@enderror
+    @error('duree')
+        <div class="mb-6 flex items-center gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-[20px]">error</span>
+            <span class="font-body text-sm font-semibold">{{ $message }}</span>
+        </div>
+    @enderror
 
     {{-- grille des plans --}}
     <div class="grid sm:grid-cols-2 gap-5">
@@ -93,6 +108,8 @@
              x-data="{
                 mois: 1,
                 dureeMax: {{ $dureeMax }},
+                actif: {{ \Illuminate\Support\Js::from($estActuelPayant) }},
+                base: '{{ $estActuelPayant && $user->abonnement_expire_le ? $user->abonnement_expire_le->format('Y-m-d') : now()->format('Y-m-d') }}',
                 paliers: {{ \Illuminate\Support\Js::from($paliers) }},
                 suggestions: {{ \Illuminate\Support\Js::from($durees) }},
 
@@ -110,6 +127,12 @@
                 get prixMensuelEquivalent() {
                     const m = Math.max(1, parseInt(this.mois) || 1);
                     return Math.round(this.prixTotal / m);
+                },
+                get nouvelleFin() {
+                    const m = Math.max(1, parseInt(this.mois) || 1);
+                    const d = new Date(this.base + 'T00:00:00');
+                    d.setMonth(d.getMonth() + m);
+                    return d.toLocaleDateString('fr-FR');
                 },
                 formatteMonnaie(n) { return new Intl.NumberFormat('fr-FR').format(n) + ' Ar'; },
                 majMois(v) { this.mois = Math.min(this.dureeMax, Math.max(1, parseInt(v) || 1)); },
@@ -147,11 +170,24 @@
             <div class="mb-1">
                 <span class="font-display text-3xl font-bold text-primary-900" x-text="formatteMonnaie(prixTotal)"></span>
             </div>
-            <p class="font-body text-xs text-gray-400 mb-1">
+            <p class="font-body text-xs text-gray-400 mb-3">
                 <span x-show="mois > 1" x-text="formatteMonnaie(prixMensuelEquivalent) + ' / mois équivalent'"></span>
                 <span x-show="mois <= 1">par mois</span>
                 <span x-show="reduction > 0" x-cloak class="text-green-600 font-semibold" x-text="' · réduction de ' + reduction + ' %'"></span>
             </p>
+
+            {{-- date de fin (actuelle → nouvelle) --}}
+            <div class="mb-4 bg-primary-50 border border-primary-100 rounded-xl px-4 py-3 font-body text-xs text-primary-800">
+                @if ($estActuelPayant && $user->abonnement_expire_le)
+                    <p>Fin actuelle : <strong>{{ $user->abonnement_expire_le->format('d/m/Y') }}</strong> (il reste {{ $user->dureeRestanteLabel() }})</p>
+                @endif
+                <p>
+                    <span x-text="actif ? 'Nouvelle date de fin :' : 'Date de fin :'"></span>
+                    <strong x-text="nouvelleFin"></strong>
+                    <span class="text-primary-700/70" x-text="'(+' + mois + ' mois)'"></span>
+                </p>
+            </div>
+
             <p class="font-body text-[11px] text-gray-400 italic mb-4">Paiement en € : veuillez contacter l'administrateur : support@tafely-gr.com</p>
 
             <ul class="flex flex-col gap-2.5 mb-6 flex-1">
@@ -164,7 +200,7 @@
             </ul>
 
             @if ($estActuelPayant)
-                <p class="font-body text-xs text-gray-400 text-center mb-2">Souscrire ci-dessous prolonge votre abonnement actuel de la durée choisie.</p>
+                <p class="font-body text-xs text-gray-400 text-center mb-2">Le paiement ci-dessous s'ajoute à votre abonnement actuel : la durée choisie est ajoutée à la date de fin.</p>
             @endif
 
             <form method="POST" action="{{ route('abonnement.souscrire') }}">
@@ -172,7 +208,7 @@
                 <input type="hidden" name="duree" :value="mois">
                 <button type="submit" class="w-full flex items-center justify-center gap-2 bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm py-3 rounded-xl shadow-sm transition-colors">
                     <span class="material-symbols-outlined text-[18px]">payments</span>
-                    <span x-text="'Souscrire pour ' + mois + (mois > 1 ? ' mois' : ' mois')"></span> — MVola / Orange Money
+                    <span x-text="(actif ? 'Prolonger de ' : 'Souscrire pour ') + mois + ' mois'"></span> — MVola / Orange Money
                 </button>
             </form>
         </div>
@@ -223,7 +259,7 @@
             </template>
         </div>
 
-                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
             <div class="flex items-center gap-3">
                 <button type="button" @click="ajuster(-1)" class="h-9 w-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50">−</button>
                 <input type="number" :min="pas" :max="max" :step="pas" x-model.number="quantite" @change="corriger()"
@@ -232,7 +268,7 @@
                 <span class="font-body text-xs text-gray-400">produits (par <span x-text="pas"></span>, max <span x-text="max"></span>)</span>
             </div>
 
-                        <div class="flex flex-col sm:flex-row sm:items-center gap-4 w-full sm:w-auto">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4 w-full sm:w-auto">
                 <div class="text-center sm:text-right">
                     <p class="font-display text-xl font-bold text-primary-900" x-text="formatteMonnaie(prixTotal)"></p>
                     <p class="font-body text-xs text-gray-400"><span x-text="formatteMonnaie(prixParProduit)"></span> par produit</p>

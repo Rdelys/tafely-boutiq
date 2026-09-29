@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Settings;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -21,6 +22,7 @@ class User extends Authenticatable
         // Champs gérés par l'admin
         'suspendu', 'suspendu_raison', 'suspendu_le',
         'essai_jusquau', 'limite_produits_personnalisee',
+        'boutique_validee_le',
     ];
 
     protected $hidden = [
@@ -35,6 +37,7 @@ class User extends Authenticatable
             'essai_jusquau' => 'date',
             'suspendu' => 'boolean',
             'suspendu_le' => 'datetime',
+            'boutique_validee_le' => 'datetime',
         ];
     }
 
@@ -146,6 +149,76 @@ class User extends Authenticatable
         }
 
         return is_null($this->abonnement_expire_le) || $this->abonnement_expire_le->isFuture();
+    }
+
+    /**
+     * Temps restant avant la fin de l'abonnement, en mois et jours.
+     * Null si l'abonnement n'est pas actif ou n'a pas de date de fin.
+     *
+     * @return array{mois: int, jours: int}|null
+     */
+    public function dureeRestanteAbonnement(): ?array
+    {
+        if (! $this->abonnementActif() || is_null($this->abonnement_expire_le)) {
+            return null;
+        }
+
+        $ecart = now()->startOfDay()->diff($this->abonnement_expire_le->copy()->startOfDay());
+
+        return [
+            'mois' => ($ecart->y * 12) + $ecart->m,
+            'jours' => $ecart->d,
+        ];
+    }
+
+    /**
+     * Ex : "1 mois et 20 jours", "3 mois", "12 jours".
+     */
+    public function dureeRestanteLabel(): ?string
+    {
+        $duree = $this->dureeRestanteAbonnement();
+
+        if (is_null($duree)) {
+            return null;
+        }
+
+        $parties = [];
+
+        if ($duree['mois'] > 0) {
+            $parties[] = $duree['mois'].' mois';
+        }
+
+        if ($duree['jours'] > 0) {
+            $parties[] = $duree['jours'].' jour'.($duree['jours'] > 1 ? 's' : '');
+        }
+
+        return $parties ? implode(' et ', $parties) : 'moins d\'un jour';
+    }
+
+    // ---- Offre de lancement ----
+
+    public function boutiqueValidee(): bool
+    {
+        return ! is_null($this->boutique_validee_le);
+    }
+
+    /**
+     * Éligible si le compte fait partie des N premiers inscrits
+     * (N réglé dans les Paramètres admin).
+     */
+    public function estEligibleOffreLancement(): bool
+    {
+        $places = Settings::offreLancementPlaces();
+
+        if ($places <= 0) {
+            return false;
+        }
+
+        return static::query()
+            ->orderBy('id')
+            ->limit($places)
+            ->pluck('id')
+            ->contains($this->id);
     }
 
     public function limiteProduits(): int

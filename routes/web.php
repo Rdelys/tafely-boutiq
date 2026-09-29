@@ -292,6 +292,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('parametres')->name('parametres.')->group(function () {
             Route::get('/', [\App\Http\Controllers\Admin\ParametresController::class, 'index'])->name('index');
             Route::put('/', [\App\Http\Controllers\Admin\ParametresController::class, 'update'])->name('update');
+            Route::post('/valider-boutique/{utilisateur}', [\App\Http\Controllers\Admin\ParametresController::class, 'validerBoutique'])->name('valider-boutique');
         });
     });
 

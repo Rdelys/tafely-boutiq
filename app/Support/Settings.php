@@ -32,6 +32,12 @@ class Settings
         'reduction_semestre' => 10,   // à partir de 6 mois
         'reduction_9_mois' => 15,     // à partir de 9 mois
         'reduction_annuel' => 20,     // à partir de 12 mois
+
+        // Offre de lancement : les N premières boutiques inscrites, une fois
+        // validées par l'admin, reçoivent des mois de plan payant offerts.
+        'offre_lancement_active' => true,
+        'offre_lancement_places' => 10,
+        'offre_lancement_mois' => 1,
     ];
 
     public static function get(string $cle)
@@ -80,6 +86,23 @@ class Settings
     public static function dureeMaxMois(): int
     {
         return self::get('duree_max_mois');
+    }
+
+    // ---- Offre de lancement ----
+
+    public static function offreLancementActive(): bool
+    {
+        return self::get('offre_lancement_active');
+    }
+
+    public static function offreLancementPlaces(): int
+    {
+        return max(0, self::get('offre_lancement_places'));
+    }
+
+    public static function offreLancementMois(): int
+    {
+        return max(1, self::get('offre_lancement_mois'));
     }
 
     // ---- Emplacements produits supplémentaires ----

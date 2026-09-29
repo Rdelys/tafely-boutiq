@@ -42,6 +42,7 @@ class AdminAuditLog extends Model
         return match ($this->action) {
             'suspension' => 'a suspendu la boutique',
             'reactivation' => 'a réactivé la boutique',
+            'validation_boutique' => 'a validé la boutique (offre de lancement)',
             'prolongation_essai' => 'a prolongé l\'essai',
             'prolongation_abonnement' => 'a prolongé l\'abonnement',
             'limite_produits_personnalisee' => 'a modifié la limite de produits',
