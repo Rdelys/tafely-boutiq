@@ -12,6 +12,7 @@ use App\Http\Controllers\VenteBoutiqueController;
 use App\Http\Controllers\VitrineController;
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\SitemapController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])
     ->name('home');
+
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])
+->name('sitemap');
+
+Route::get('/robots.txt', [SitemapController::class, 'robots'])
+    ->name('robots');
 
 Route::get('/b/{identifiant}', [VitrineController::class, 'show'])
     ->name('vitrine');
