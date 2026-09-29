@@ -25,11 +25,15 @@ class AbonnementActiveNotification extends Notification
         $message = (new MailMessage)->subject('Paiement confirmé — Tafely')->greeting('Merci pour votre paiement !');
 
         if ($this->paiement->type === 'abonnement') {
+            $duree = $this->paiement->duree_mois ?: 1;
+
             $message
-                ->line('Votre abonnement Tafely est maintenant actif.')
+                ->line('Votre abonnement Tafely est maintenant actif ('.$duree.' mois).')
                 ->line('Il est valable jusqu\'au '.$notifiable->abonnement_expire_le->format('d/m/Y').'.');
         } else {
-            $message->line('10 emplacements produits supplémentaires ont été ajoutés à votre boutique.');
+            $quantite = $this->paiement->quantiteProduits();
+
+            $message->line($quantite.' emplacement'.($quantite > 1 ? 's' : '').' produit supplémentaire'.($quantite > 1 ? 's ont' : ' a').' été ajouté'.($quantite > 1 ? 's' : '').' à votre boutique.');
         }
 
         return $message

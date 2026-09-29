@@ -9,6 +9,12 @@
             <span class="material-symbols-outlined text-6xl text-primary-700" style="font-variation-settings: 'FILL' 1;">check_circle</span>
             <h1 class="font-display text-2xl font-bold text-primary-900 mt-4">Paiement confirmé !</h1>
             <p class="font-body text-gray-500 mt-2">Merci, votre paiement de {{ $paiement->montantFormate() }} a bien été reçu.</p>
+                        @if ($paiement->type === 'abonnement' && $paiement->duree_mois)
+                <p class="font-body text-sm text-gray-400 mt-1">Durée souscrite : {{ $paiement->dureeLabel() }}</p>
+            @endif
+                        @if ($paiement->type === 'pack_produits')
+                <p class="font-body text-sm text-gray-400 mt-1">{{ $paiement->quantiteProduits() }} emplacement(s) produit ajouté(s) à votre boutique.</p>
+            @endif
         @elseif ($paiement->statut === 'echoue')
             <span class="material-symbols-outlined text-6xl text-accent-500">error</span>
             <h1 class="font-display text-2xl font-bold text-primary-900 mt-4">Paiement non abouti</h1>

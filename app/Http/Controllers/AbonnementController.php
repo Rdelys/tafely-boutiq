@@ -15,15 +15,27 @@ use Illuminate\View\View;
 
 class AbonnementController extends Controller
 {
-    public function index(): View
+        public function index(): View
     {
-        return view('abonnement');
+        $durees = Settings::detailDurees();
+        $paliers = Settings::paliersReduction();
+        $dureeMax = Settings::dureeMaxMois();
+
+        $pack = [
+            'prix_par_produit' => Settings::prixParProduit(),
+            'pas' => Settings::pasProduits(),
+            'max' => Settings::quantiteMaxProduits(),
+            'suggestions' => Settings::suggestionsQuantiteProduits(),
+        ];
+
+        return view('abonnement', compact('durees', 'paliers', 'dureeMax', 'pack'));
     }
 
     /**
-     * Souscription à l'abonnement mensuel.
+     * Souscription à l'abonnement, pour n'importe quelle durée en mois
+     * (1 à la limite fixée dans les Paramètres admin).
      */
-    public function souscrire(): RedirectResponse
+    public function souscrire(Request $request): RedirectResponse
     {
         if (Settings::maintenancePaiements()) {
             return redirect()
@@ -31,38 +43,76 @@ class AbonnementController extends Controller
                 ->with('erreur', 'Les paiements sont temporairement indisponibles. Réessayez plus tard.');
         }
 
-        return $this->demarrerPaiement(
-            'abonnement',
-            Settings::prixAbonnement(),
-            'Abonnement Tafely — 1 mois'
-        );
+        $validated = $request->validate([
+            'duree' => ['required', 'integer', 'min:1', 'max:'.Settings::dureeMaxMois()],
+        ], [
+            'duree.required' => 'Merci d\'indiquer une durée d\'abonnement.',
+            'duree.min' => 'La durée minimale est de 1 mois.',
+            'duree.max' => 'La durée maximale est de '.Settings::dureeMaxMois().' mois.',
+        ]);
+
+        $duree = (int) $validated['duree'];
+        $montant = Settings::prixAbonnementPourDuree($duree);
+
+        $description = 'Abonnement Tafely — '.$duree.' mois';
+
+        return $this->demarrerPaiement('abonnement', $montant, $description, $duree);
     }
 
-    /**
-     * Achat d'un pack de 10 produits.
+        /**
+     * Achat d'emplacements produits supplémentaires, par quantité choisie
+     * (multiple du pas défini dans les Paramètres admin).
      */
-    public function acheterPack(): RedirectResponse
+    public function acheterPack(Request $request): RedirectResponse
     {
         if (Settings::maintenancePaiements()) {
             return redirect()
                 ->route('abonnement')
                 ->with('erreur', 'Les paiements sont temporairement indisponibles. Réessayez plus tard.');
         }
+
+        $pas = Settings::pasProduits();
+        $max = Settings::quantiteMaxProduits();
+
+        $validated = $request->validate([
+            'quantite' => [
+                'required',
+                'integer',
+                'min:'.$pas,
+                'max:'.$max,
+                function ($attribute, $value, $fail) use ($pas) {
+                    if ((int) $value % $pas !== 0) {
+                        $fail('La quantité doit être un multiple de '.$pas.'.');
+                    }
+                },
+            ],
+        ], [
+            'quantite.required' => 'Merci d\'indiquer le nombre de produits à ajouter.',
+            'quantite.min' => 'Le minimum est de '.$pas.' produit(s).',
+            'quantite.max' => 'Le maximum par achat est de '.$max.' produits.',
+        ]);
+
+        $quantite = (int) $validated['quantite'];
+        $montant = Settings::prixPourQuantiteProduits($quantite);
 
         return $this->demarrerPaiement(
             'pack_produits',
-            Settings::prixPackProduits(),
-            'Pack +10 produits Tafely'
+            $montant,
+            'Pack +'.$quantite.' produits Tafely',
+            null,
+            $quantite
         );
     }
-
-    /**
+    
+        /**
      * Création du paiement Papi.
      */
     private function demarrerPaiement(
         string $type,
         int $montant,
-        string $description
+        string $description,
+        ?int $dureeMois = null,
+        ?int $quantite = null
     ): RedirectResponse {
         $user = Auth::user();
 
@@ -87,6 +137,8 @@ class AbonnementController extends Controller
             'type' => $type,
             'reference' => $reference,
             'montant' => $montant,
+            'duree_mois' => $dureeMois,
+            'quantite' => $quantite,
             'statut' => 'en_attente',
         ]);
 
@@ -165,6 +217,11 @@ class AbonnementController extends Controller
 
         return redirect()->away($lien);
     }
+        /*
+        |--------------------------------------------------------------------------
+        | Redirection vers Papi
+        |--------------------------------------------------------------------------
+        */
 
     /**
      * Callback envoyé par Papi.
@@ -646,8 +703,8 @@ class AbonnementController extends Controller
         ], 200);
     }
 
-    /**
-     * Active l'abonnement ou ajoute le pack de produits.
+        /**
+     * Active l'abonnement ou ajoute les emplacements produits achetés.
      */
     private function activerAvantage(
         Paiement $paiement
@@ -674,14 +731,14 @@ class AbonnementController extends Controller
             $user->status = 'active';
 
             $user->abonnement_expire_le =
-                $depart->copy()->addMonth();
+                $depart->copy()->addMonths($paiement->duree_mois ?: 1);
 
             $user->save();
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Pack produits
+        | Emplacements produits supplémentaires
         |--------------------------------------------------------------------------
         */
 
@@ -690,7 +747,7 @@ class AbonnementController extends Controller
             'pack_produits'
         ) {
 
-            $user->limite_produits_bonus += 10;
+            $user->limite_produits_bonus += $paiement->quantiteProduits();
 
             $user->save();
         }

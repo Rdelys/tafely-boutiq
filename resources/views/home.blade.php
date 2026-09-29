@@ -210,7 +210,7 @@
         </div>
 
         <p class="font-body text-xs text-gray-400 mt-6">
-            Besoin de plus de place ? Un pack de +10 produits est disponible à 5 000 Ar depuis votre tableau de bord.
+            Besoin de plus de place ? Vous pouvez ajouter des emplacements produits par 5, 10, 15... depuis votre tableau de bord.
         </p>
     </div>
 </section>
