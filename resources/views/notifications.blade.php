@@ -22,13 +22,13 @@
                 <div class="p-4 md:p-5 flex items-start gap-4 {{ ! $n->estLue() ? 'bg-primary-50/40' : '' }}">
                     <div @class([
                         'h-10 w-10 rounded-full flex items-center justify-center shrink-0',
-                        'bg-accent-50' => in_array($n->type, ['produit_bloque', 'produit_supprime']),
-                        'bg-primary-50' => ! in_array($n->type, ['produit_bloque', 'produit_supprime']),
+                        'bg-accent-50' => in_array($n->type, ['produit_bloque', 'produit_supprime', 'compte_suspendu']),
+                        'bg-primary-50' => ! in_array($n->type, ['produit_bloque', 'produit_supprime', 'compte_suspendu']),
                     ])>
                         <span @class([
                             'material-symbols-outlined text-[20px]',
-                            'text-accent-600' => in_array($n->type, ['produit_bloque', 'produit_supprime']),
-                            'text-primary-700' => ! in_array($n->type, ['produit_bloque', 'produit_supprime']),
+                            'text-accent-600' => in_array($n->type, ['produit_bloque', 'produit_supprime', 'compte_suspendu']),
+                            'text-primary-700' => ! in_array($n->type, ['produit_bloque', 'produit_supprime', 'compte_suspendu']),
                         ])>{{ $n->icone() }}</span>
                     </div>
                     <div class="flex-1 min-w-0">

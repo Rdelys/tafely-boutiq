@@ -39,6 +39,10 @@ class CommandeController extends Controller
             return response()->json(['message' => 'Boutique introuvable.'], 404);
         }
 
+        if ($marchand->estSuspendu()) {
+            return response()->json(['message' => 'Cette boutique est temporairement indisponible.'], 403);
+        }
+
         $validator = Validator::make($request->all(), [
             'nom_client' => ['required', 'string', 'max:255'],
             'telephone_client' => ['required', 'string', 'max:30'],

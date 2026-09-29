@@ -55,9 +55,13 @@ Route::post('/logout', [AuthController::class, 'logout'])
 |--------------------------------------------------------------------------
 | UTILISATEUR CONNECTÉ
 |--------------------------------------------------------------------------
+|
+| Un marchand suspendu garde l'accès à son espace. Le blocage de sa
+| vitrine et de la vente en boutique est géré dans les contrôleurs.
+|
 */
 
-Route::middleware(['auth', 'compte.actif'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Dashboard
@@ -105,25 +109,12 @@ Route::middleware(['auth', 'compte.actif'])->group(function () {
 
     /*
     |--------------------------------------------------------------------------
-    | Vente en boutique
-    |--------------------------------------------------------------------------
-    */
-
-    Route::get('/ventes/nouvelle', [VenteBoutiqueController::class, 'create'])
-        ->name('ventes.create');
-
-    Route::post('/ventes', [VenteBoutiqueController::class, 'store'])
-        ->name('ventes.store');
-
-
-    /*
-    |--------------------------------------------------------------------------
     | Notifications
     |--------------------------------------------------------------------------
     */
 
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])
-    ->name('notifications');
+        ->name('notifications');
 
     Route::prefix('support')->name('support.')->group(function () {
         Route::get('/', [\App\Http\Controllers\SupportController::class, 'index'])->name('index');
@@ -180,6 +171,10 @@ Route::middleware(['auth', 'compte.actif'])->group(function () {
 |--------------------------------------------------------------------------
 | FONCTIONNALITÉS NÉCESSITANT UN ABONNEMENT ACTIF
 |--------------------------------------------------------------------------
+|
+| (ou un essai non expiré). La vente en boutique est en plus bloquée
+| pour les marchands suspendus, dans VenteBoutiqueController.
+|
 */
 
 Route::middleware(['auth', 'abonnement.actif'])->group(function () {
@@ -189,6 +184,12 @@ Route::middleware(['auth', 'abonnement.actif'])->group(function () {
 
     Route::post('/produits', [ProduitController::class, 'store'])
         ->name('produits.store');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Vente en boutique
+    |--------------------------------------------------------------------------
+    */
 
     Route::get('/ventes/nouvelle', [VenteBoutiqueController::class, 'create'])
         ->name('ventes.create');
@@ -294,5 +295,4 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
     });
 
-    
 });

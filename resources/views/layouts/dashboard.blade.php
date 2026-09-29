@@ -19,8 +19,11 @@
         class="hidden md:inline-flex items-center gap-2 bg-white text-primary-700 font-semibold text-sm px-4 py-2 rounded-full border border-primary-200 hover:bg-primary-50 transition-colors">
             Voir ma boutique
         </a>
-        <a href="{{ route('notifications') }}" class="text-gray-500 hover:text-primary-700 hover:bg-gray-50 transition-colors p-2.5 rounded-full flex items-center justify-center">
+        <a href="{{ route('notifications') }}" class="relative text-gray-500 hover:text-primary-700 hover:bg-gray-50 transition-colors p-2.5 rounded-full flex items-center justify-center">
             <span class="material-symbols-outlined">notifications</span>
+            @if ($notificationsNonLues > 0)
+                <span class="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-accent-500 border-2 border-white"></span>
+            @endif
         </a>
         <form method="POST" action="{{ route('logout') }}">
             @csrf
@@ -48,20 +51,20 @@
     </div>
 
     @if ($user->produits()->count() >= $user->limiteProduits())
-    <span title="Limite de produits atteinte pour votre plan actuel"
-          class="bg-gray-100 text-gray-400 w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 flex items-center justify-center gap-2 cursor-not-allowed select-none">
-        <span class="material-symbols-outlined text-[20px]">block</span>
-        Limite atteinte ({{ $user->produits()->count() }}/{{ $user->limiteProduits() }})
-    </span>
-@else
-    <a href="{{ route('produits.create') }}"
-       class="bg-accent-500 hover:bg-accent-600 text-white w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 transition-colors flex items-center justify-center gap-2 shadow-sm">
-        <span class="material-symbols-outlined text-[20px]">add</span>
-        Ajouter un produit
-    </a>
-@endif
+        <span title="Limite de produits atteinte pour votre plan actuel"
+              class="bg-gray-100 text-gray-400 w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 flex items-center justify-center gap-2 cursor-not-allowed select-none">
+            <span class="material-symbols-outlined text-[20px]">block</span>
+            Limite atteinte ({{ $user->produits()->count() }}/{{ $user->limiteProduits() }})
+        </span>
+    @else
+        <a href="{{ route('produits.create') }}"
+           class="bg-accent-500 hover:bg-accent-600 text-white w-full py-2.5 rounded-xl font-body font-bold text-sm mb-6 transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <span class="material-symbols-outlined text-[20px]">add</span>
+            Ajouter un produit
+        </a>
+    @endif
 
-        <nav class="flex-1 flex flex-col gap-1 font-body text-sm">
+    <nav class="flex-1 flex flex-col gap-1 font-body text-sm">
         @foreach ([
             ['route' => 'dashboard', 'icon' => 'dashboard', 'label' => 'Dashboard'],
             ['route' => 'produits', 'icon' => 'inventory_2', 'label' => 'Produits'],
@@ -108,6 +111,18 @@
 
 {{-- ============ MAIN CONTENT (fourni par chaque page) ============ --}}
 <main class="pt-24 pb-28 md:pb-16 md:pl-72 md:pr-10 px-4 min-h-screen max-w-[1200px] mx-auto w-full">
+
+    {{-- bandeau : boutique suspendue --}}
+    @if ($user->estSuspendu())
+        <div class="mb-6 flex items-start gap-3 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
+            <span class="material-symbols-outlined text-[20px] mt-0.5">gpp_bad</span>
+            <p class="font-body text-sm font-semibold">
+                Votre boutique est suspendue : votre lien public est désactivé et les ventes en boutique sont bloquées.
+                <a href="{{ route('support.create') }}" class="underline">Contacter le support</a>
+            </p>
+        </div>
+    @endif
+
     @yield('page-content')
 </main>
 
@@ -151,9 +166,9 @@
 <footer class="hidden md:flex bg-white border-t border-gray-100 w-full py-5 px-10 md:pl-72 justify-between items-center relative z-40">
     <span class="font-body text-sm text-gray-400">© {{ date('Y') }} Tafely. Propulsons le commerce en ligne.</span>
     <div class="flex gap-6 font-body text-sm text-gray-500">
-        <a href="#" class="hover:text-accent-600 transition-colors">Aide</a>
-        <a href="#" class="hover:text-accent-600 transition-colors">Confidentialité</a>
-        <a href="#" class="hover:text-accent-600 transition-colors">Contact</a>
+        <a href="{{ route('aide') }}" class="hover:text-accent-600 transition-colors">Aide</a>
+        <a href="{{ route('confidentialite') }}" class="hover:text-accent-600 transition-colors">Confidentialité</a>
+        <a href="{{ route('contact') }}" class="hover:text-accent-600 transition-colors">Contact</a>
     </div>
 </footer>
 

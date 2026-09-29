@@ -40,8 +40,8 @@ class AdminAuditLog extends Model
     public function libelle(): string
     {
         return match ($this->action) {
-            'suspension' => 'a suspendu le compte',
-            'reactivation' => 'a réactivé le compte',
+            'suspension' => 'a suspendu la boutique',
+            'reactivation' => 'a réactivé la boutique',
             'prolongation_essai' => 'a prolongé l\'essai',
             'prolongation_abonnement' => 'a prolongé l\'abonnement',
             'limite_produits_personnalisee' => 'a modifié la limite de produits',

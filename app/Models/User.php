@@ -2,22 +2,26 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
-    use Notifiable;use HasFactory;
+    use Notifiable;
+    use HasFactory;
 
     protected $fillable = [
-    'email', 'pseudo', 'nom', 'prenom', 'nom_boutique', 'logo', 'adresse',
-    'nif', 'stat', 'status', 'abonnement_expire_le', 'limite_produits_bonus',
-    'telephone', 'email_notification', 'email_notification_secondaire',
-    'boutique_theme', 'boutique_couleur', 'boutique_couleur_perso', 'boutique_description',
-];
+        'email', 'pseudo', 'nom', 'prenom', 'nom_boutique', 'logo', 'adresse',
+        'nif', 'stat', 'status', 'abonnement_expire_le', 'limite_produits_bonus',
+        'telephone', 'email_notification', 'email_notification_secondaire',
+        'boutique_theme', 'boutique_couleur', 'boutique_couleur_perso', 'boutique_description',
+        // Champs gérés par l'admin
+        'suspendu', 'suspendu_raison', 'suspendu_le',
+        'essai_jusquau', 'limite_produits_personnalisee',
+    ];
 
     protected $hidden = [
         'remember_token',
@@ -29,6 +33,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'abonnement_expire_le' => 'date',
             'essai_jusquau' => 'date',
+            'suspendu' => 'boolean',
+            'suspendu_le' => 'datetime',
         ];
     }
 
@@ -60,13 +66,13 @@ class User extends Authenticatable
     }
 
     public function statusLabel(): string
-{
-    if ($this->abonnementActif()) {
-        return 'Actif payant';
-    }
+    {
+        if ($this->abonnementActif()) {
+            return 'Actif payant';
+        }
 
-    return $this->essaiExpire() ? 'Essai expiré' : 'Gratuit (essai)';
-}
+        return $this->essaiExpire() ? 'Essai expiré' : 'Gratuit (essai)';
+    }
 
     public function hasPseudo(): bool
     {
@@ -119,29 +125,28 @@ class User extends Authenticatable
         return $base;
     }
 
-
-public function essaiExpire(): bool
-{
-    return ! $this->abonnementActif() && now()->greaterThan($this->finEssaiLe());
-}
-
-public function joursRestantsEssai(): int
-{
-    if ($this->abonnementActif()) {
-        return 0;
+    public function essaiExpire(): bool
+    {
+        return ! $this->abonnementActif() && now()->greaterThan($this->finEssaiLe());
     }
 
-    return max(0, (int) now()->diffInDays($this->finEssaiLe(), false));
-}
+    public function joursRestantsEssai(): int
+    {
+        if ($this->abonnementActif()) {
+            return 0;
+        }
 
-public function abonnementActif(): bool
-{
-    if ($this->status !== 'active') {
-        return false;
+        return max(0, (int) now()->diffInDays($this->finEssaiLe(), false));
     }
 
-    return is_null($this->abonnement_expire_le) || $this->abonnement_expire_le->isFuture();
-}
+    public function abonnementActif(): bool
+    {
+        if ($this->status !== 'active') {
+            return false;
+        }
+
+        return is_null($this->abonnement_expire_le) || $this->abonnement_expire_le->isFuture();
+    }
 
     public function limiteProduits(): int
     {

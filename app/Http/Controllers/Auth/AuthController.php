@@ -72,6 +72,9 @@ class AuthController extends Controller
      * Étape 2 : vérification du code. Connecte l'utilisateur existant,
      * ou crée son compte (status = "free") s'il n'existait pas encore,
      * puis redirige vers le dashboard.
+     *
+     * Un marchand suspendu peut se connecter : seuls sa vitrine publique
+     * et ses ventes en boutique sont bloquées.
      */
     public function verifyOtp(Request $request): JsonResponse
     {
@@ -103,10 +106,6 @@ class AuthController extends Controller
             ['email' => $email],
             ['status' => 'free']
         );
-
-        if ($user->estSuspendu()) {
-            return response()->json(['message' => 'Ce compte a été suspendu. Contactez le support.'], 403);
-        }
 
         if (! $user->email_verified_at) {
             $user->forceFill(['email_verified_at' => now()])->save();

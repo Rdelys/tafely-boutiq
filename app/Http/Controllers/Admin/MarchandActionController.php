@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\MarchandNotification;
 
 class MarchandActionController extends Controller
 {
@@ -25,7 +26,23 @@ class MarchandActionController extends Controller
 
         $this->journaliser('suspension', $utilisateur, ['raison' => $validated['raison'] ?? null]);
 
-        return back()->with('status', 'Compte suspendu.');
+        $message = 'Votre boutique a été suspendue par l\'équipe Tafely. Le lien public de votre boutique est désactivé '
+            .'et l\'enregistrement des ventes en boutique est bloqué. Vous gardez l\'accès à votre espace.';
+
+        if (! empty($validated['raison'])) {
+            $message .= ' Raison : '.$validated['raison'].'.';
+        }
+
+        $message .= ' Contactez le support pour plus d\'informations.';
+
+        MarchandNotification::create([
+            'user_id' => $utilisateur->id,
+            'type' => 'compte_suspendu',
+            'titre' => 'Boutique suspendue',
+            'message' => $message,
+        ]);
+
+        return back()->with('status', 'Boutique suspendue.');
     }
 
     public function reactiver(User $utilisateur): RedirectResponse
@@ -38,7 +55,14 @@ class MarchandActionController extends Controller
 
         $this->journaliser('reactivation', $utilisateur);
 
-        return back()->with('status', 'Compte réactivé.');
+        MarchandNotification::create([
+            'user_id' => $utilisateur->id,
+            'type' => 'compte_reactive',
+            'titre' => 'Boutique réactivée',
+            'message' => 'Votre boutique est de nouveau active : votre lien public fonctionne et vous pouvez enregistrer des ventes en boutique.',
+        ]);
+
+        return back()->with('status', 'Boutique réactivée.');
     }
 
     public function prolongerEssai(Request $request, User $utilisateur): RedirectResponse

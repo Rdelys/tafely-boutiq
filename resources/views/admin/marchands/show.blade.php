@@ -45,11 +45,12 @@
 
             {{-- suspension / réactivation --}}
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-                <h2 class="font-display text-base font-bold text-primary-900 mb-4">Accès au compte</h2>
+                <h2 class="font-display text-base font-bold text-primary-900 mb-1">Suspension de la boutique</h2>
+                <p class="font-body text-xs text-gray-400 mb-4">Le marchand garde l'accès à son espace, mais son lien public et ses ventes en boutique sont bloqués.</p>
 
                 @if ($marchand->estSuspendu())
                     <div class="mb-4 bg-accent-50 border border-accent-100 text-accent-700 rounded-xl px-4 py-3">
-                        <p class="font-body text-xs font-semibold">Compte suspendu depuis le {{ $marchand->suspendu_le?->format('d/m/Y') }}</p>
+                        <p class="font-body text-xs font-semibold">Boutique suspendue depuis le {{ $marchand->suspendu_le?->format('d/m/Y') }}</p>
                         @if ($marchand->suspendu_raison)
                             <p class="font-body text-xs mt-1">Raison : {{ $marchand->suspendu_raison }}</p>
                         @endif
@@ -57,17 +58,17 @@
                     <form method="POST" action="{{ route('admin.marchands.reactiver', $marchand) }}">
                         @csrf
                         <button type="submit" class="w-full bg-primary-800 hover:bg-primary-900 text-white font-body font-bold text-sm py-2.5 rounded-xl transition-colors">
-                            Réactiver le compte
+                            Réactiver la boutique
                         </button>
                     </form>
                 @else
                     <form method="POST" action="{{ route('admin.marchands.suspendre', $marchand) }}"
-                          onsubmit="return confirm('Suspendre ce compte ? Le marchand ne pourra plus se connecter.');">
+                          onsubmit="return confirm('Suspendre cette boutique ? Son lien public et les ventes en boutique seront bloqués, mais il gardera accès à son compte.');">
                         @csrf
                         <input type="text" name="raison" maxlength="255" placeholder="Raison (facultatif)"
                                class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 font-body text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary-600">
                         <button type="submit" class="w-full bg-accent-500 hover:bg-accent-600 text-white font-body font-bold text-sm py-2.5 rounded-xl transition-colors">
-                            Suspendre le compte
+                            Suspendre la boutique
                         </button>
                     </form>
                 @endif

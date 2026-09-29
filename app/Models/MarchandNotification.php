@@ -39,6 +39,8 @@ class MarchandNotification extends Model
             'produit_supprime' => 'delete',
             'produit_reactive' => 'check_circle',
             'support_reponse' => 'support_agent',
+            'compte_suspendu' => 'gpp_bad',
+            'compte_reactive' => 'verified_user',
             'annonce' => 'campaign',
             default => 'notifications',
         };

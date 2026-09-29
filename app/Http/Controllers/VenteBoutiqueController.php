@@ -18,6 +18,10 @@ class VenteBoutiqueController extends Controller
      */
     public function create(): View
     {
+        if (Auth::user()->estSuspendu()) {
+            return view('ventes.suspendu');
+        }
+
         $produits = Auth::user()->produits()->orderBy('nom')->get();
 
         return view('ventes.creer', compact('produits'));
@@ -33,6 +37,11 @@ class VenteBoutiqueController extends Controller
     {
         $user = Auth::user();
 
+        if ($user->estSuspendu()) {
+            return response()->json([
+                'message' => 'Votre boutique est suspendue : les ventes en boutique sont bloquées. Contactez le support.',
+            ], 403);
+        }
         $donnees = $request->validate([
             'nom_client' => ['nullable', 'string', 'max:255'],
             'telephone_client' => ['nullable', 'string', 'max:30'],
