@@ -14,7 +14,10 @@ class ParametresController extends Controller
     {
         $user = Auth::user();
 
-        return view('parametres', compact('user'));
+        return view('parametres', [
+            'user' => $user,
+            'googleMapsKey' => config('services.google_maps.key'),
+        ]);
     }
 
     public function update(Request $request): RedirectResponse
@@ -30,6 +33,10 @@ class ParametresController extends Controller
             'logo' => ['nullable', 'image', 'max:2048'],
             'email_notification' => ['required', 'email', 'max:255'],
             'email_notification_secondaire' => ['nullable', 'email', 'max:255'],
+            // Localisation : les deux coordonnées vont ensemble (ou aucune).
+            'latitude' => ['nullable', 'required_with:longitude', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'required_with:latitude', 'numeric', 'between:-180,180'],
+            'localisation_libelle' => ['nullable', 'string', 'max:255'],
         ], [
             'nom_boutique.required' => 'Le nom de la boutique est obligatoire.',
             'logo.image' => 'Le logo doit être une image.',
@@ -37,6 +44,10 @@ class ParametresController extends Controller
             'email_notification.required' => "L'email principal est obligatoire.",
             'email_notification.email' => "L'email principal doit être une adresse valide.",
             'email_notification_secondaire.email' => "L'email secondaire doit être une adresse valide.",
+            'latitude.numeric' => 'La position de la boutique est invalide.',
+            'longitude.numeric' => 'La position de la boutique est invalide.',
+            'latitude.between' => 'La position de la boutique est invalide.',
+            'longitude.between' => 'La position de la boutique est invalide.',
         ]);
 
         if ($request->hasFile('logo')) {
@@ -46,6 +57,16 @@ class ParametresController extends Controller
             $validated['logo'] = $request->file('logo')->store('logos', 'public');
         } else {
             unset($validated['logo']);
+        }
+
+        // Position retirée : on efface aussi le libellé.
+        if (is_null($validated['latitude'] ?? null) || is_null($validated['longitude'] ?? null)) {
+            $validated['latitude'] = null;
+            $validated['longitude'] = null;
+            $validated['localisation_libelle'] = null;
+        } else {
+            $validated['latitude'] = round((float) $validated['latitude'], 7);
+            $validated['longitude'] = round((float) $validated['longitude'], 7);
         }
 
         $user->update($validated);

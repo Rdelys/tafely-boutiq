@@ -132,6 +132,12 @@
                             <dd class="text-gray-800 text-right">{{ $marchand->adresse }}</dd>
                         </div>
                     @endif
+                    @if ($marchand->aLocalisation())
+                        <div class="flex justify-between gap-4">
+                            <dt class="text-gray-400">Position</dt>
+                            <dd class="text-right"><a href="{{ $marchand->lienGoogleMaps() }}" target="_blank" rel="noopener" class="text-primary-700 font-semibold hover:text-accent-600 transition-colors">Voir sur la carte</a></dd>
+                        </div>
+                    @endif
                     @if ($marchand->nif)
                         <div class="flex justify-between gap-4">
                             <dt class="text-gray-400">NIF</dt>
