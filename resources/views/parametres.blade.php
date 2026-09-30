@@ -148,7 +148,7 @@
         <section class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100"
                  x-data="localisationBoutique({{ \Illuminate\Support\Js::from($donneesCarte) }})"
                  @keydown.escape.window="ouvert = false"
-                 @gmaps-auth-failure.window="erreur = 'La clé Google Maps est refusée. Vérifiez sa configuration.'">
+                 @gmaps-auth-failure.window="erreur = 'La clé Google Maps est refusée. Vérifiez sa configuration (restrictions de domaine, API activées).'">
 
             <div class="flex items-center gap-2.5 mb-5 border-b border-gray-100 pb-4">
                 <span class="material-symbols-outlined text-primary-700 text-[24px]">location_on</span>
@@ -233,7 +233,7 @@
                     <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-100">
                         <div>
                             <h3 class="font-display text-lg font-bold text-primary-900">Où se trouve votre boutique ?</h3>
-                            <p class="font-body text-xs text-gray-400 mt-0.5">Touchez la carte ou déplacez le repère pour être précis.</p>
+                            <p class="font-body text-xs text-gray-400 mt-0.5">Cherchez un lieu, ou touchez la carte et déplacez le repère pour être précis.</p>
                         </div>
                         <button type="button" @click="ouvert = false" aria-label="Fermer"
                                 class="h-9 w-9 shrink-0 flex items-center justify-center rounded-full text-gray-400 hover:text-accent-600 hover:bg-gray-50 transition-colors">
@@ -265,10 +265,26 @@
                     <p x-show="erreur" x-cloak x-text="erreur"
                        class="mx-5 mt-3 text-xs font-body font-semibold text-accent-700 bg-accent-50 border border-accent-100 rounded-lg px-3 py-2"></p>
 
+                    {{-- résultats de recherche à choisir --}}
+                    <div x-show="suggestions.length > 0" x-cloak class="mx-5 mt-3">
+                        <p class="font-body text-xs font-semibold text-gray-500 mb-1.5">Plusieurs lieux trouvés — choisissez le bon :</p>
+                        <ul class="max-h-48 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-100 bg-white shadow-sm">
+                            <template x-for="(s, index) in suggestions" :key="index">
+                                <li>
+                                    <button type="button" @click="choisir(s)"
+                                            class="w-full flex items-start gap-2 px-4 py-2.5 text-left hover:bg-primary-50 transition-colors">
+                                        <span class="material-symbols-outlined text-primary-700 text-[18px] mt-0.5">location_on</span>
+                                        <span class="font-body text-sm text-gray-700" x-text="s.libelle"></span>
+                                    </button>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+
                     {{-- carte --}}
                     <div class="px-5 pt-3">
                         <div class="relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-100">
-                            <div x-ref="carte" class="h-[50vh] sm:h-[420px] w-full"></div>
+                            <div x-ref="carte" class="h-[45vh] sm:h-[400px] w-full"></div>
 
                             <div x-show="chargement" x-cloak class="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-gray-100">
                                 <span class="material-symbols-outlined text-primary-700 text-4xl animate-spin" style="animation-duration: 1.5s;">progress_activity</span>
@@ -375,7 +391,6 @@
             window.__gmapsPromise = new Promise(function (resolve, reject) {
                 window.__gmapsInit = function () { resolve(); };
                 window.gm_authFailure = function () {
-                    document.dispatchEvent(new CustomEvent('gmaps-auth-failure'));
                     window.dispatchEvent(new CustomEvent('gmaps-auth-failure'));
                 };
 
@@ -397,6 +412,48 @@
             // Les objets Google Maps restent hors de l'état Alpine (ils ne supportent pas les proxys).
             var carte = null, marqueur = null, geocodeur = null;
             var CENTRE_TANA = { lat: -18.8792, lng: 47.5079 };
+            var NOMINATIM = 'https://nominatim.openstreetmap.org';
+
+            // Geocoder Google sous forme de promesse : ne rejette jamais, renvoie le statut.
+            function geocoderGoogle(params) {
+                return new Promise(function (resolve) {
+                    if (! geocodeur) return resolve({ statut: 'INDISPONIBLE', resultats: [] });
+                    geocodeur.geocode(params, function (resultats, statut) {
+                        resolve({ statut: statut, resultats: resultats || [] });
+                    });
+                });
+            }
+
+            // Recherche de secours (OpenStreetMap) : sans clé, utilisée si Google refuse ou ne trouve rien.
+            async function chercherNominatim(q) {
+                var base = NOMINATIM + '/search?format=jsonv2&limit=5&accept-language=fr&q=' + encodeURIComponent(q);
+
+                async function requete(url) {
+                    var res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    if (! res.ok) throw new Error('nominatim ' + res.status);
+                    return res.json();
+                }
+
+                // D'abord à Madagascar, puis partout si rien n'est trouvé.
+                var data = await requete(base + '&countrycodes=mg');
+                if (! data.length) data = await requete(base);
+
+                return data.map(function (d) {
+                    return { libelle: d.display_name, lat: parseFloat(d.lat), lng: parseFloat(d.lon) };
+                });
+            }
+
+            async function adresseNominatim(lat, lng) {
+                try {
+                    var res = await fetch(NOMINATIM + '/reverse?format=jsonv2&accept-language=fr&lat=' + lat + '&lon=' + lng,
+                        { headers: { 'Accept': 'application/json' } });
+                    if (! res.ok) return '';
+                    var d = await res.json();
+                    return d.display_name || '';
+                } catch (e) {
+                    return '';
+                }
+            }
 
             return {
                 cle: init.cle,
@@ -410,6 +467,7 @@
                 recherchant: false,
                 erreur: '',
                 recherche: '',
+                suggestions: [],
 
                 tmpLat: null,
                 tmpLng: null,
@@ -417,6 +475,7 @@
 
                 async ouvrir() {
                     this.erreur = '';
+                    this.suggestions = [];
                     this.tmpLat = this.lat;
                     this.tmpLng = this.lng;
                     this.tmpLibelle = this.libelle;
@@ -480,45 +539,90 @@
                     }
                 },
 
-                // Pose le repère, mémorise les coordonnées et lit l'adresse correspondante.
-                placer(latLng) {
-                    var self = this;
+                // Pose le repère et mémorise les coordonnées.
+                // Sans libellé connu, l'adresse est lue (Google, puis OpenStreetMap en secours).
+                async placer(latLng, libelleConnu) {
                     marqueur.setPosition(latLng);
                     marqueur.setMap(carte);
 
-                    this.tmpLat = Number(latLng.lat().toFixed(7));
-                    this.tmpLng = Number(latLng.lng().toFixed(7));
-                    this.tmpLibelle = '';
-                    this.erreur = '';
+                    var lat = Number(latLng.lat().toFixed(7));
+                    var lng = Number(latLng.lng().toFixed(7));
 
-                    geocodeur.geocode({ location: latLng }, function (resultats, statut) {
-                        if (statut === 'OK' && resultats && resultats[0]) {
-                            self.tmpLibelle = resultats[0].formatted_address;
-                        }
-                    });
+                    this.tmpLat = lat;
+                    this.tmpLng = lng;
+                    this.tmpLibelle = libelleConnu || '';
+                    this.erreur = '';
+                    this.suggestions = [];
+
+                    if (libelleConnu) return;
+
+                    var g = await geocoderGoogle({ location: latLng });
+                    var adresse = (g.statut === 'OK' && g.resultats[0]) ? g.resultats[0].formatted_address : '';
+
+                    if (! adresse) adresse = await adresseNominatim(lat, lng);
+
+                    // On ignore la réponse si le repère a bougé entre-temps.
+                    if (this.tmpLat === lat && this.tmpLng === lng) this.tmpLibelle = adresse;
                 },
 
-                rechercher() {
+                // Recherche d'un lieu : Google d'abord, OpenStreetMap si Google refuse ou ne trouve rien.
+                async rechercher() {
                     var q = this.recherche.trim();
-                    if (! q || ! geocodeur) return;
+                    if (! q) return;
 
-                    var self = this;
+                    if (! carte) {
+                        this.erreur = 'La carte n\'est pas encore prête. Patientez un instant puis réessayez.';
+                        return;
+                    }
+
                     this.erreur = '';
+                    this.suggestions = [];
                     this.recherchant = true;
 
-                    geocodeur.geocode({ address: q, region: 'mg' }, function (resultats, statut) {
-                        self.recherchant = false;
+                    var trouves = [];
 
-                        if (statut !== 'OK' || ! resultats || ! resultats[0]) {
-                            self.erreur = 'Adresse introuvable. Essayez un quartier ou un repère connu, ou touchez directement la carte.';
-                            return;
+                    try {
+                        var g = await geocoderGoogle({ address: q, region: 'mg' });
+
+                        if (g.statut === 'OK') {
+                            trouves = g.resultats.slice(0, 5).map(function (r) {
+                                return {
+                                    libelle: r.formatted_address,
+                                    lat: r.geometry.location.lat(),
+                                    lng: r.geometry.location.lng(),
+                                };
+                            });
+                        } else if (g.statut !== 'ZERO_RESULTS') {
+                            // REQUEST_DENIED = API Geocoding non activée pour cette clé, etc.
+                            console.warn('Google Geocoding : ' + g.statut + ' → bascule sur OpenStreetMap');
                         }
 
-                        var position = resultats[0].geometry.location;
-                        carte.setCenter(position);
-                        carte.setZoom(17);
-                        self.placer(position);
-                    });
+                        if (! trouves.length) trouves = await chercherNominatim(q);
+                    } catch (e) {
+                        this.recherchant = false;
+                        this.erreur = 'La recherche est indisponible pour le moment. Touchez directement la carte pour placer votre boutique.';
+                        return;
+                    }
+
+                    this.recherchant = false;
+
+                    if (! trouves.length) {
+                        this.erreur = 'Aucun résultat pour « ' + q + ' ». Essayez un quartier ou un repère connu, ou touchez directement la carte.';
+                        return;
+                    }
+
+                    if (trouves.length === 1) {
+                        this.choisir(trouves[0]);
+                    } else {
+                        this.suggestions = trouves;
+                    }
+                },
+
+                choisir(lieu) {
+                    var position = new google.maps.LatLng(lieu.lat, lieu.lng);
+                    carte.setCenter(position);
+                    carte.setZoom(17);
+                    this.placer(position, lieu.libelle);
                 },
 
                 maPosition() {
