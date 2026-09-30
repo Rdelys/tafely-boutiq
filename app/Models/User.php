@@ -19,6 +19,8 @@ class User extends Authenticatable
         'nif', 'stat', 'status', 'abonnement_expire_le', 'limite_produits_bonus',
         'telephone', 'email_notification', 'email_notification_secondaire',
         'boutique_theme', 'boutique_couleur', 'boutique_couleur_perso', 'boutique_description',
+        // Localisation exacte de la boutique (Google Maps)
+        'latitude', 'longitude', 'localisation_libelle',
         // Champs gérés par l'admin
         'suspendu', 'suspendu_raison', 'suspendu_le',
         'essai_jusquau', 'limite_produits_personnalisee',
@@ -38,6 +40,8 @@ class User extends Authenticatable
             'suspendu' => 'boolean',
             'suspendu_le' => 'datetime',
             'boutique_validee_le' => 'datetime',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 
@@ -105,6 +109,37 @@ class User extends Authenticatable
     public function lienBoutique(): string
     {
         return url('/b/'.$this->identifiantBoutique());
+    }
+
+    // ---- Localisation de la boutique ----
+
+    public function aLocalisation(): bool
+    {
+        return ! is_null($this->latitude) && ! is_null($this->longitude);
+    }
+
+    /**
+     * Lien qui ouvre la boutique sur Google Maps (ou l'appli Maps du téléphone).
+     */
+    public function lienGoogleMaps(): ?string
+    {
+        if (! $this->aLocalisation()) {
+            return null;
+        }
+
+        return 'https://www.google.com/maps/search/?api=1&query='.$this->latitude.','.$this->longitude;
+    }
+
+    /**
+     * Lien qui lance directement l'itinéraire vers la boutique.
+     */
+    public function lienItineraire(): ?string
+    {
+        if (! $this->aLocalisation()) {
+            return null;
+        }
+
+        return 'https://www.google.com/maps/dir/?api=1&destination='.$this->latitude.','.$this->longitude;
     }
 
     public function couleurBoutique(): string

@@ -41,4 +41,8 @@ return [
         'webhook_secret' => env('PAPI_WEBHOOK_SECRET'),
     ],
 
+    'google_maps' => [
+        'key' => env('GOOGLE_MAPS_API_KEY'),
+    ],
+
 ];
