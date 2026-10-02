@@ -162,14 +162,5 @@
     </a>
 </nav>
 
-{{-- ============ FOOTER (desktop) ============ --}}
-<footer class="hidden md:flex bg-white border-t border-gray-100 w-full py-5 px-10 md:pl-72 justify-between items-center relative z-40">
-    <span class="font-body text-sm text-gray-400">© {{ date('Y') }} Tafely. Propulsons le commerce en ligne.</span>
-    <div class="flex gap-6 font-body text-sm text-gray-500">
-        <a href="{{ route('aide') }}" class="hover:text-accent-600 transition-colors">Aide</a>
-        <a href="{{ route('confidentialite') }}" class="hover:text-accent-600 transition-colors">Confidentialité</a>
-        <a href="{{ route('contact') }}" class="hover:text-accent-600 transition-colors">Contact</a>
-    </div>
-</footer>
 
 @endsection

@@ -12,10 +12,10 @@ class HomeController extends Controller
 {
     public function index(Request $request, GeoPricingService $pricingService)
     {
-        // Si une session/remember valide existe déjà, on va direct
-        // au dashboard, jamais sur la page d'accueil.
+        // Si une session/remember valide existe déjà, on va direct à l'espace
+        // marchand : les paramètres si le profil est incomplet, sinon le dashboard.
         if (Auth::check()) {
-            return redirect()->route('dashboard');
+            return redirect(Auth::user()->routeApresConnexion());
         }
 
         $pricing = $pricingService->getPrice($request->ip());

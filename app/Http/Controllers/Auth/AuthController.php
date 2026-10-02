@@ -70,8 +70,10 @@ class AuthController extends Controller
 
     /**
      * Étape 2 : vérification du code. Connecte l'utilisateur existant,
-     * ou crée son compte (status = "free") s'il n'existait pas encore,
-     * puis redirige vers le dashboard.
+     * ou crée son compte (status = "free") s'il n'existait pas encore.
+     *
+     * Redirige vers les Paramètres tant que le profil de la boutique est
+     * incomplet, sinon vers le dashboard.
      *
      * Un marchand suspendu peut se connecter : seuls sa vitrine publique
      * et ses ventes en boutique sont bloquées.
@@ -116,7 +118,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Connecté.',
-            'redirect' => route('dashboard'),
+            'redirect' => $user->routeApresConnexion(),
         ]);
     }
 

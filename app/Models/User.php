@@ -14,11 +14,33 @@ class User extends Authenticatable
     use Notifiable;
     use HasFactory;
 
+    /**
+     * Catégories proposées au marchand (clé enregistrée => libellé + icône).
+     * "autres" demande une précision en texte libre.
+     */
+    public const CATEGORIES = [
+        'mode' => ['nom' => 'Mode & accessoires', 'icone' => 'checkroom'],
+        'beaute' => ['nom' => 'Beauté & bien-être', 'icone' => 'spa'],
+        'alimentation' => ['nom' => 'Alimentation & pâtisserie', 'icone' => 'restaurant'],
+        'artisanat' => ['nom' => 'Artisanat & décoration', 'icone' => 'brush'],
+        'electronique' => ['nom' => 'Électronique & téléphones', 'icone' => 'devices'],
+        'maison' => ['nom' => 'Maison & ameublement', 'icone' => 'chair'],
+        'enfants' => ['nom' => 'Enfants & bébé', 'icone' => 'child_care'],
+        'sport' => ['nom' => 'Sport & loisirs', 'icone' => 'sports_soccer'],
+        'livres' => ['nom' => 'Livres & papeterie', 'icone' => 'menu_book'],
+        'auto' => ['nom' => 'Auto & moto', 'icone' => 'directions_car'],
+        'agriculture' => ['nom' => 'Agriculture & terroir', 'icone' => 'agriculture'],
+        'services' => ['nom' => 'Services', 'icone' => 'handyman'],
+        'autres' => ['nom' => 'Autres', 'icone' => 'more_horiz'],
+    ];
+
     protected $fillable = [
         'email', 'pseudo', 'nom', 'prenom', 'nom_boutique', 'logo', 'adresse',
         'nif', 'stat', 'status', 'abonnement_expire_le', 'limite_produits_bonus',
         'telephone', 'email_notification', 'email_notification_secondaire',
         'boutique_theme', 'boutique_couleur', 'boutique_couleur_perso', 'boutique_description',
+        // Catégorie de la boutique
+        'categorie_boutique', 'categorie_autre',
         // Localisation exacte de la boutique (Google Maps)
         'latitude', 'longitude', 'localisation_libelle',
         // Champs gérés par l'admin
@@ -109,6 +131,71 @@ class User extends Authenticatable
     public function lienBoutique(): string
     {
         return url('/b/'.$this->identifiantBoutique());
+    }
+
+    // ---- Profil de la boutique ----
+
+    /**
+     * Libellé de la catégorie : le nom choisi, ou la précision saisie pour "Autres".
+     */
+    public function categorieLibelle(): ?string
+    {
+        if (blank($this->categorie_boutique)) {
+            return null;
+        }
+
+        if ($this->categorie_boutique === 'autres') {
+            return $this->categorie_autre ?: 'Autres';
+        }
+
+        return self::CATEGORIES[$this->categorie_boutique]['nom'] ?? null;
+    }
+
+    /**
+     * Informations de profil encore manquantes (libellés lisibles).
+     * Pour changer ce qui est exigé, ajoutez ou retirez une ligne ici.
+     *
+     * @return array<int, string>
+     */
+    public function champsManquants(): array
+    {
+        $manquants = [];
+
+        if (blank($this->nom_boutique)) {
+            $manquants[] = 'Nom de la boutique';
+        }
+
+        if (blank($this->categorie_boutique)
+            || ($this->categorie_boutique === 'autres' && blank($this->categorie_autre))) {
+            $manquants[] = 'Catégorie de la boutique';
+        }
+
+        if (blank($this->adresse)) {
+            $manquants[] = 'Adresse';
+        }
+
+        if (blank($this->telephone)) {
+            $manquants[] = 'Téléphone';
+        }
+
+        if (! $this->aLocalisation()) {
+            $manquants[] = 'Position sur la carte';
+        }
+
+        return $manquants;
+    }
+
+    public function profilComplet(): bool
+    {
+        return count($this->champsManquants()) === 0;
+    }
+
+    /**
+     * Page d'arrivée après connexion : les paramètres tant que le profil est incomplet.
+     */
+    public function routeApresConnexion(): string
+    {
+        return $this->profilComplet() ? route('dashboard') : route('parametres');
     }
 
     // ---- Localisation de la boutique ----
