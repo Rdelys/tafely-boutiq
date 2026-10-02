@@ -14,6 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withMiddleware(function (Middleware $middleware) {
 
+        // Page de compte à rebours avant le lancement (production uniquement).
+        // Affichée à tout le monde, même avec une session ouverte.
+        $middleware->web(append: [
+            \App\Http\Middleware\PageLancement::class,
+        ]);
+
         // Exceptions CSRF
         // Le callback de paiement n'est pas protégé par le CSRF
         $middleware->validateCsrfTokens(except: [
