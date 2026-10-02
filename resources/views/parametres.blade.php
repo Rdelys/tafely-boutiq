@@ -18,6 +18,29 @@
         </div>
     @endif
 
+    {{-- profil incomplet --}}
+    @if (count($manquants) > 0)
+        <div class="max-w-2xl mb-6 bg-accent-50 border border-accent-100 rounded-2xl p-5">
+            <div class="flex items-start gap-3">
+                <span class="material-symbols-outlined text-accent-600 text-[26px]">assignment_late</span>
+                <div class="min-w-0">
+                    <h2 class="font-display font-bold text-accent-800">Complétez le profil de votre boutique</h2>
+                    <p class="font-body text-xs text-accent-700 mt-0.5">
+                        Ces informations rassurent vos clients et permettent de retrouver votre boutique sur la carte.
+                    </p>
+                    <ul class="mt-3 flex flex-wrap gap-2">
+                        @foreach ($manquants as $manquant)
+                            <li class="inline-flex items-center gap-1.5 bg-white border border-accent-100 text-accent-700 text-xs font-semibold px-3 py-1.5 rounded-full">
+                                <span class="material-symbols-outlined text-[14px]">edit</span>
+                                {{ $manquant }}
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('parametres.update') }}" enctype="multipart/form-data" class="max-w-2xl flex flex-col gap-6">
         @csrf
         @method('PUT')
@@ -133,7 +156,56 @@
             <p class="font-body text-xs text-gray-400 mt-1.5">Affichés sur votre boutique publique si renseignés, pour rassurer vos clients.</p>
         </section>
 
-        {{-- Section 2 : localisation exacte sur Google Maps --}}
+        {{-- Section 2 : catégorie de la boutique --}}
+        <section class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100"
+                 x-data="{ categorie: {{ \Illuminate\Support\Js::from(old('categorie_boutique', $user->categorie_boutique ?? '')) }} }">
+            <div class="flex items-center gap-2.5 mb-5 border-b border-gray-100 pb-4">
+                <span class="material-symbols-outlined text-primary-700 text-[24px]">category</span>
+                <h2 class="font-display text-lg font-bold text-primary-900">Catégorie de la boutique</h2>
+            </div>
+
+            <p class="font-body text-sm text-gray-500 mb-4">Que vendez-vous principalement ? Choisissez la catégorie qui vous correspond le mieux.</p>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                @foreach ($categories as $cle => $categorie)
+                    <label class="relative flex flex-col items-center justify-center gap-1.5 text-center p-3 min-h-[5.5rem] rounded-xl border-2 cursor-pointer transition-colors"
+                           :class="categorie === '{{ $cle }}' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:border-gray-300'">
+                        <input type="radio" name="categorie_boutique" value="{{ $cle }}" x-model="categorie" class="sr-only">
+                        <span class="material-symbols-outlined text-[26px] transition-colors"
+                              :class="categorie === '{{ $cle }}' ? 'text-primary-700' : 'text-gray-400'">{{ $categorie['icone'] }}</span>
+                        <span class="font-body text-xs font-semibold leading-tight"
+                              :class="categorie === '{{ $cle }}' ? 'text-primary-800' : 'text-gray-600'">{{ $categorie['nom'] }}</span>
+                    </label>
+                @endforeach
+            </div>
+
+            @error('categorie_boutique')
+                <p class="mt-3 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+            @enderror
+
+            {{-- précision si "Autres" --}}
+            <div x-show="categorie === 'autres'" x-cloak x-transition class="mt-5">
+                <label for="categorie_autre" class="block font-body text-sm font-semibold text-primary-900 mb-1.5">
+                    Précisez votre catégorie <span class="text-accent-500">*</span>
+                </label>
+                <input
+                    id="categorie_autre"
+                    name="categorie_autre"
+                    type="text"
+                    maxlength="100"
+                    :required="categorie === 'autres'"
+                    value="{{ old('categorie_autre', $user->categorie_autre) }}"
+                    placeholder="ex : Location de matériel de fête"
+                    class="w-full bg-gray-50 border border-gray-200 text-gray-900 rounded-lg px-3.5 py-2.5 font-body text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-colors @error('categorie_autre') border-accent-400 @enderror"
+                >
+                @error('categorie_autre')
+                    <p class="mt-1.5 text-xs font-body font-semibold text-accent-600">{{ $message }}</p>
+                @enderror
+                <p class="font-body text-xs text-gray-400 mt-1.5">Dites-nous en quelques mots ce que vous vendez.</p>
+            </div>
+        </section>
+
+        {{-- Section 3 : localisation exacte sur Google Maps --}}
         @php
             $latInit = old('latitude', $user->latitude);
             $lngInit = old('longitude', $user->longitude);
@@ -325,7 +397,7 @@
             </div>
         </section>
 
-        {{-- Section 3 : notifications de commande --}}
+        {{-- Section 4 : notifications de commande --}}
         <section class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100">
             <div class="flex items-center gap-2.5 mb-5 border-b border-gray-100 pb-4">
                 <span class="material-symbols-outlined text-primary-700 text-[24px]">mail</span>
