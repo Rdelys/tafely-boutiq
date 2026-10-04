@@ -114,6 +114,12 @@ class AuthController extends Controller
         }
 
         Auth::login($user, true);
+        \App\Models\Connexion::create([
+       'user_id' => $user->id,
+       'ip' => $request->ip(),
+       'source' => 'web',
+       'nouveau_compte' => $user->wasRecentlyCreated,
+   ]);
         $request->session()->regenerate();
 
         return response()->json([
