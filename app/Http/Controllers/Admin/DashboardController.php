@@ -110,9 +110,9 @@ class DashboardController extends Controller
             ];
         });
 
-        return view('admin.dashboard', compact(
+        return view('admin.dashboard', array_merge(compact(
             'stats', 'graphMrr', 'tauxConversion', 'graphChurn',
             'repartitionRevenus', 'nouvellesJour', 'nouvellesSemaine'
-        ));
+        ), ['audience' => \App\Support\Audience::donnees()]));
     }
 }

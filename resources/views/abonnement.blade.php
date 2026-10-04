@@ -76,7 +76,7 @@
             <p class="font-body text-sm text-gray-500 mt-1 mb-4">Idéal pour démarrer et tester votre boutique.</p>
 
             <div class="mb-1">
-                <span class="font-display text-3xl font-bold text-primary-900">0 Ar</span>
+                <span class="font-display text-3xl font-bold text-primary-900">{{ ['EUR' => '0 €', 'USD' => '$0'][$devise['code']] ?? '0 Ar' }}</span>
                 <span class="font-body text-sm text-gray-400"> pendant 30 jours</span>
             </div>
             <p class="font-body text-xs text-gray-400 mb-4">&nbsp;</p>
@@ -112,6 +112,7 @@
                 base: '{{ $estActuelPayant && $user->abonnement_expire_le ? $user->abonnement_expire_le->format('Y-m-d') : now()->format('Y-m-d') }}',
                 paliers: {{ \Illuminate\Support\Js::from($paliers) }},
                 suggestions: {{ \Illuminate\Support\Js::from($durees) }},
+                devise: {{ \Illuminate\Support\Js::from($devise) }},
 
                 get reduction() {
                     for (const p of this.paliers) {
@@ -134,7 +135,15 @@
                     d.setMonth(d.getMonth() + m);
                     return d.toLocaleDateString('fr-FR');
                 },
-                formatteMonnaie(n) { return new Intl.NumberFormat('fr-FR').format(n) + ' Ar'; },
+                // Prix affiché dans la devise du pays (montant de base en Ariary).
+                formatteMonnaie(n) {
+                    if (this.devise.code !== 'MGA') {
+                        return new Intl.NumberFormat(this.devise.code === 'USD' ? 'en-US' : 'fr-FR', { style: 'currency', currency: this.devise.code }).format(n / this.devise.taux);
+                    }
+                    return new Intl.NumberFormat('fr-FR').format(n) + ' Ar';
+                },
+                // Montant réellement débité sur Papi : toujours en Ariary.
+                formatteAriary(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' Ar'; },
                 majMois(v) { this.mois = Math.min(this.dureeMax, Math.max(1, parseInt(v) || 1)); },
              }">
             @if ($estActuelPayant)
@@ -176,6 +185,20 @@
                 <span x-show="reduction > 0" x-cloak class="text-green-600 font-semibold" x-text="' · réduction de ' + reduction + ' %'"></span>
             </p>
 
+            {{-- précision sur la devise de paiement (Papi) --}}
+            @if ($devise['code'] !== 'MGA')
+                <div class="mb-4 flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 font-body text-xs text-amber-900">
+                    <span class="material-symbols-outlined text-[18px] mt-0.5">currency_exchange</span>
+                    <p>
+                        Prix en {{ $devise['code'] === 'USD' ? 'dollars' : 'euros' }} donné à titre indicatif (1 {{ $devise['code'] === 'USD' ? '$' : '€' }} ≈ {{ number_format($devise['taux'], 0, ',', ' ') }} Ar, cours du jour).
+                        Sur Papi, le paiement s'effectue en <strong>Ariary</strong> : le montant affiché sera de
+                        <strong x-text="formatteAriary(prixTotal)"></strong>.
+                    </p>
+                </div>
+            @else
+                <p class="font-body text-[11px] text-gray-400 italic mb-4">Le paiement s'effectue en Ariary sur Papi (MVola, Orange Money ou carte).</p>
+            @endif
+
             {{-- date de fin (actuelle → nouvelle) --}}
             <div class="mb-4 bg-primary-50 border border-primary-100 rounded-xl px-4 py-3 font-body text-xs text-primary-800">
                 @if ($estActuelPayant && $user->abonnement_expire_le)
@@ -187,8 +210,6 @@
                     <span class="text-primary-700/70" x-text="'(+' + mois + ' mois)'"></span>
                 </p>
             </div>
-
-            <p class="font-body text-[11px] text-gray-400 italic mb-4">Paiement en € : veuillez contacter l'administrateur : support@tafely-gr.com</p>
 
             <ul class="flex flex-col gap-2.5 mb-6 flex-1">
                 @foreach (['Jusqu\'à 30 produits', 'Paiement MVOLA et Orange Money', 'Statistiques avancées', 'Support prioritaire'] as $feature)
@@ -222,9 +243,16 @@
             max: {{ $pack['max'] }},
             prixParProduit: {{ $pack['prix_par_produit'] }},
             suggestions: {{ \Illuminate\Support\Js::from($pack['suggestions']) }},
+            devise: {{ \Illuminate\Support\Js::from($devise) }},
 
             get prixTotal() { return this.quantite * this.prixParProduit; },
-            formatteMonnaie(n) { return new Intl.NumberFormat('fr-FR').format(n) + ' Ar'; },
+            formatteMonnaie(n) {
+                if (this.devise.code !== 'MGA') {
+                        return new Intl.NumberFormat(this.devise.code === 'USD' ? 'en-US' : 'fr-FR', { style: 'currency', currency: this.devise.code }).format(n / this.devise.taux);
+                    }
+                return new Intl.NumberFormat('fr-FR').format(n) + ' Ar';
+            },
+            formatteAriary(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(n)) + ' Ar'; },
             ajuster(delta) {
                 this.quantite = Math.min(this.max, Math.max(this.pas, (parseInt(this.quantite) || this.pas) + delta * this.pas));
             },
@@ -272,7 +300,11 @@
                 <div class="text-center sm:text-right">
                     <p class="font-display text-xl font-bold text-primary-900" x-text="formatteMonnaie(prixTotal)"></p>
                     <p class="font-body text-xs text-gray-400"><span x-text="formatteMonnaie(prixParProduit)"></span> par produit</p>
-                    <p class="font-body text-[11px] text-gray-400 italic">Paiement en € : contactez l'administrateur : support@tafely-gr.com</p>
+                    @if ($devise['code'] !== 'MGA')
+                        <p class="font-body text-[11px] text-amber-800 mt-1">Indicatif. Sur Papi, le paiement sera en Ariary : <strong x-text="formatteAriary(prixTotal)"></strong></p>
+                    @else
+                        <p class="font-body text-[11px] text-gray-400 italic mt-1">Paiement en Ariary sur Papi.</p>
+                    @endif
                 </div>
                 <form method="POST" action="{{ route('abonnement.pack') }}" class="w-full sm:w-auto">
                     @csrf

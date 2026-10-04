@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Affichée à tout le monde, même avec une session ouverte.
         $middleware->web(append: [
             \App\Http\Middleware\PageLancement::class,
+                   \App\Http\Middleware\EnregistrerVisite::class,
         ]);
 
         // Exceptions CSRF

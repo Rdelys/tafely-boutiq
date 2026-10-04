@@ -18,11 +18,10 @@ class HomeController extends Controller
             return redirect(Auth::user()->routeApresConnexion());
         }
 
-        $pricing = $pricingService->getPrice($request->ip());
+        // Pays du visiteur (France ou Madagascar) et devise d'affichage.
+        $pricing = $pricingService->contexte($request);
 
         // ---- Offre de lancement (réglée dans les Paramètres admin) ----
-        // Les N premiers inscrits, une fois leur boutique validée, reçoivent
-        // des mois de plan payant offerts. Places restantes = N - comptes déjà inscrits.
         $places = Settings::offreLancementPlaces();
         $mois = Settings::offreLancementMois();
         $restantes = max(0, $places - User::count());
@@ -34,13 +33,17 @@ class HomeController extends Controller
             'mois' => $mois,
             // 30 jours d'essai (≈ 1 mois) + les mois offerts.
             'duree_totale' => 1 + $mois,
-            // Phrases qui s'accordent avec le nombre de places.
             'premiers' => $places > 1 ? 'les '.$places.' premiers inscrits' : 'le tout premier inscrit',
             'verbe' => $places > 1 ? 'reçoivent' : 'reçoit',
         ];
 
         $tarif = [
+            // Prix de base en Ariary (utilisé pour les données structurées Google : toujours en MGA).
             'prix' => Settings::prixAbonnement(),
+            // Prix affiché au visiteur : "20 000 Ar" ou "4,00 €" selon le pays.
+            'prix_affiche' => $pricingService->formater(Settings::prixAbonnement(), $pricing),
+            'pays' => $pricing['pays'],
+            'taux' => $pricing['taux'],
             'reduction_annuelle' => (int) Settings::get('reduction_annuel'),
         ];
 
