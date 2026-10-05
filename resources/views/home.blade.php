@@ -3,6 +3,8 @@
 @php
     // ---------- Données dynamiques (réglées dans les Paramètres admin) ----------
     $prixFormate = number_format($tarif['prix'], 0, ',', ' ');
+    $prixAffiche = $tarif['prix_affiche'];          // "20 000 Ar", "4,00 €" ou "$4.35"
+        $estEtranger = $tarif['pays'] !== 'MG';          // France (€) ou autre pays ($)
     $reductionMax = (int) $tarif['reduction_annuelle'];
 
     $offreActive = $offre['active'];
@@ -42,7 +44,7 @@
         ],
         [
             'q' => 'Combien coûte Tafely ?',
-            'r' => "Tafely est gratuit pendant 30 jours, sans carte bancaire (jusqu'à 10 produits). Ensuite, le plan Actif payant coûte {$prixFormate} Ar par mois (jusqu'à 30 produits), avec des réductions si vous souscrivez plusieurs mois. Aucune commission n'est prélevée sur vos ventes.",
+            'r' => "Tafely est gratuit pendant 30 jours, sans carte bancaire (jusqu'à 10 produits). Ensuite, le plan Actif payant coûte {$prixAffiche} par mois (jusqu'à 30 produits), avec des réductions si vous souscrivez plusieurs mois. Aucune commission n'est prélevée sur vos ventes.",
         ],
         [
             'q' => 'Puis-je vendre sur WhatsApp et Facebook avec Tafely ?',
@@ -785,7 +787,7 @@
                 </h2>
 
                 <p class="reveal font-body text-primary-100/90 mt-4" style="--d:.16s">
-                    Avec les 30 jours d'essai : <strong class="text-white">{{ $totalMois }} mois</strong> pour vendre avec toutes les fonctions du plan à {{ $prixFormate }} Ar/mois.
+                    Avec les 30 jours d'essai : <strong class="text-white">{{ $totalMois }} mois</strong> pour vendre avec toutes les fonctions du plan à {{ $prixAffiche }}/mois.
                 </p>
 
                 <ol class="reveal mt-7 space-y-3 text-left list-none" style="--d:.24s">
@@ -857,8 +859,11 @@
                 <h3 class="font-display text-lg font-bold mt-2">Actif payant</h3>
                 <p class="font-body text-sm text-primary-100/80 mt-1 mb-4">Pour les boutiques qui vendent sérieusement.</p>
                 <div class="mb-6">
-                    <span class="font-display text-4xl font-extrabold">{{ $prixFormate }} Ar</span>
+                    <span class="font-display text-4xl font-extrabold">{{ $prixAffiche }}</span>
                     <span class="font-body text-sm text-primary-100/70"> / mois</span>
+                    @if ($estEtranger)
+                        <p class="font-body text-xs text-primary-100/80 mt-1">Paiement en Ariary : {{ $prixFormate }} Ar / mois (via Papi)</p>
+                    @endif
                     @if ($reductionMax > 0)
                         <p class="font-body text-xs text-amber-300 font-semibold mt-1">Jusqu'à -{{ $reductionMax }} % sur 12 mois</p>
                     @endif

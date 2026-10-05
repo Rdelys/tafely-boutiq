@@ -12,23 +12,27 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use App\Services\GeoPricingService;
 
 class AbonnementController extends Controller
 {
-        public function index(): View
+        public function index(Request $request, GeoPricingService $geo): View
     {
         $durees = Settings::detailDurees();
         $paliers = Settings::paliersReduction();
         $dureeMax = Settings::dureeMaxMois();
-
+ 
         $pack = [
             'prix_par_produit' => Settings::prixParProduit(),
             'pas' => Settings::pasProduits(),
             'max' => Settings::quantiteMaxProduits(),
             'suggestions' => Settings::suggestionsQuantiteProduits(),
         ];
-
-        return view('abonnement', compact('durees', 'paliers', 'dureeMax', 'pack'));
+ 
+        // Pays + devise d'affichage ('code' = MGA ou EUR, 'taux' = Ar pour 1 unité).
+        $devise = $geo->contexte($request);
+ 
+        return view('abonnement', compact('durees', 'paliers', 'dureeMax', 'pack', 'devise'));
     }
 
     /**

@@ -14,6 +14,12 @@ return [
     |
     */
 
+    'geo' => [
+        // Cours de secours (Ar pour 1 unité) si l'API de change est injoignable.
+        'taux_eur_mga' => env('TAUX_EUR_MGA', 5000),
+        'taux_usd_mga' => env('TAUX_USD_MGA', 4500),
+    ],
+    
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

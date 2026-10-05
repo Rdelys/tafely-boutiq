@@ -51,6 +51,7 @@
         </div>
     </div>
 
+
     {{-- ============ REVENU & COMMANDES ============ --}}
     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
         <div class="bg-gray-900 rounded-xl p-5 text-white">
@@ -73,6 +74,9 @@
             <p class="font-display text-2xl font-bold text-primary-900">{{ $tauxConversion }} %</p>
         </div>
     </div>
+
+        @include('admin._audience')
+
 
     {{-- ============ MRR ============ --}}
     <div class="bg-white rounded-2xl p-5 md:p-7 shadow-sm border border-gray-100 mb-6">
