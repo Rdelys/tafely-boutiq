@@ -4,7 +4,8 @@
     // ---------- Données dynamiques (réglées dans les Paramètres admin) ----------
     $prixFormate = number_format($tarif['prix'], 0, ',', ' ');
     $prixAffiche = $tarif['prix_affiche'];          // "20 000 Ar", "4,00 €" ou "$4.35"
-        $estEtranger = $tarif['pays'] !== 'MG';          // France (€) ou autre pays ($)
+    $estEtranger = $tarif['pays'] !== 'MG';          // France (€) ou autre pays ($)
+    $estFrance = $tarif['pays'] !== 'MG'; 
     $reductionMax = (int) $tarif['reduction_annuelle'];
 
     $offreActive = $offre['active'];
