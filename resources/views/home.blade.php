@@ -812,6 +812,7 @@
                     <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
                 </button>
                 <p class="font-body text-xs text-primary-100/60 mt-3">Sans carte bancaire · Limitée aux premières boutiques validées</p>
+                <p class="font-body text-xs text-primary-100/60 mt-1">Le nombre de places disponibles dépend du nombre de boutiques validées par notre équipe, pas du nombre d'inscrits.</p>
             </div>
         </div>
     </div>
@@ -976,7 +977,7 @@
         {{ $offreActive ? 'Créer ma boutique · '.$restantesLabel.' offerte'.($restantes > 1 ? 's' : '') : 'Créer ma boutique gratuitement' }}
     </button>
 </div>
-
+@include('partials.bienvenue')
 {{-- ============ ANIMATIONS (apparition, compteurs, barre de lecture) ============ --}}
 <script>
     (function () {
